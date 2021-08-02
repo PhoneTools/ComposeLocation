@@ -1,3 +1,6 @@
 <resources>
     <string name="app_name">ComposeLocation</string>
+    <string name="title_tip">Tip</string>
+    <string name="dialog_goto_setting">Go to Settings</string>
+    <string name="dialog_gps_setting">Location services need to be enabled, please press [Go to Settings] button and then Enable [Location Service] in the settings page, finally press [Back] button to return to this page!</string>
 </resources>

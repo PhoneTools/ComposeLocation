@@ -7,9 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.ui.tooling.preview.Preview
 import com.afollestad.assent.Permission
 import com.afollestad.assent.askForPermissions
 import com.afollestad.assent.isAllGranted
@@ -18,13 +16,17 @@ import com.benjaminwan.composelocation.loc.HalopayLocation
 import com.benjaminwan.composelocation.loc.HalopayLocationListener
 import com.benjaminwan.composelocation.loc.LocationAPI
 import com.benjaminwan.composelocation.ui.theme.ComposeLocationTheme
+import com.benjaminwan.composelocation.utils.GpsManager
+import com.benjaminwan.composelocation.utils.makeSureGpsEnable
 import com.benjaminwan.composelocation.utils.showToast
 import com.orhanobut.logger.Logger
+
 
 class MainActivity : AppCompatActivity() {
     private val latitude = mutableStateOf<Double>(0.0)
     private var longitude = mutableStateOf<Double>(0.0)
     private val locationAPI: LocationAPI = LocationAPI(App.INSTANCE)
+    private lateinit var gpsManager: GpsManager
 
     private fun getPermissions() {
         val permissions = arrayOf(
@@ -39,13 +41,13 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         } else {
-            initLocation()
+            //initLocation()
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        getPermissions()
+        makeSureGpsEnable(this)
         setContent {
             ComposeLocationTheme {
                 // A surface container using the 'background' color from the theme
@@ -59,9 +61,14 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        getPermissions()
+    }
+
     override fun onDestroy() {
         super.onDestroy()
-        locationAPI.stopGpsListener()
+        //locationAPI.stopGpsListener()
     }
 
     private fun initLocation() {
@@ -94,18 +101,5 @@ class MainActivity : AppCompatActivity() {
             }
 
         })
-    }
-}
-
-@Composable
-fun Greeting(name: String) {
-    Text(text = "Hello $name!")
-}
-
-@Preview(showBackground = true)
-@Composable
-fun DefaultPreview() {
-    ComposeLocationTheme {
-        Greeting("Android")
     }
 }
