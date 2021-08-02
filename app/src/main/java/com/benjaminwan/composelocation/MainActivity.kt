@@ -1,5 +1,6 @@
 package com.benjaminwan.composelocation
 
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
@@ -33,15 +34,22 @@ class MainActivity : AppCompatActivity() {
             Permission.ACCESS_FINE_LOCATION,
             Permission.ACCESS_COARSE_LOCATION
         )
-        if (!isAllGranted(*permissions)) {
-            askForPermissions(*permissions) { result ->
-                val permissionGranted: Boolean = result.isAllGranted(*permissions)
-                if (!permissionGranted) {
-                    showToast("权限获取错误！")
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (!isAllGranted(*permissions)) {
+                askForPermissions(*permissions) { result ->
+                    val permissionGranted: Boolean = result.isAllGranted(*permissions)
+                    if (!permissionGranted) {
+                        showToast("权限获取错误！")
+                    }
                 }
+            } else {
+                //initLocation()
+                gpsManager = GpsManager(applicationContext)
+                gpsManager.start()
             }
         } else {
-            //initLocation()
+            gpsManager = GpsManager(applicationContext)
+            gpsManager.start()
         }
     }
 
@@ -68,6 +76,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        gpsManager.stop()
         //locationAPI.stopGpsListener()
     }
 
