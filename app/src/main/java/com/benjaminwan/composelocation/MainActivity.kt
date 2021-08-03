@@ -5,10 +5,12 @@ import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.Modifier
 import com.afollestad.assent.Permission
 import com.afollestad.assent.askForPermissions
 import com.afollestad.assent.isAllGranted
@@ -17,8 +19,8 @@ import com.benjaminwan.composelocation.loc.HalopayLocation
 import com.benjaminwan.composelocation.loc.HalopayLocationListener
 import com.benjaminwan.composelocation.loc.LocationAPI
 import com.benjaminwan.composelocation.ui.theme.ComposeLocationTheme
-import com.benjaminwan.composelocation.utils.GpsManager
-import com.benjaminwan.composelocation.utils.makeSureGpsEnable
+import com.benjaminwan.composelocation.utils.LocManager
+import com.benjaminwan.composelocation.utils.makeSureLocEnable
 import com.benjaminwan.composelocation.utils.showToast
 import com.orhanobut.logger.Logger
 
@@ -27,7 +29,7 @@ class MainActivity : AppCompatActivity() {
     private val latitude = mutableStateOf<Double>(0.0)
     private var longitude = mutableStateOf<Double>(0.0)
     private val locationAPI: LocationAPI = LocationAPI(App.INSTANCE)
-    private lateinit var gpsManager: GpsManager
+    private lateinit var locManager: LocManager
 
     private fun getPermissions() {
         val permissions = arrayOf(
@@ -44,25 +46,51 @@ class MainActivity : AppCompatActivity() {
                 }
             } else {
                 //initLocation()
-                gpsManager = GpsManager(applicationContext)
-                gpsManager.start()
+                locManager = LocManager(applicationContext)
+                locManager.startRequestLocationUpdates()
             }
         } else {
-            gpsManager = GpsManager(applicationContext)
-            gpsManager.start()
+            locManager = LocManager(applicationContext)
+            locManager.startRequestLocationUpdates()
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        makeSureGpsEnable(this)
+        makeSureLocEnable(this)
         setContent {
             ComposeLocationTheme {
                 // A surface container using the 'background' color from the theme
                 Surface(color = MaterialTheme.colors.background) {
-                    Column() {
-                        Text(text = "纬度:${latitude.value}")
-                        Text(text = "经度:${longitude.value}")
+                    Column {
+                        Row {
+                            Text(text = "纬度:${latitude.value}", modifier = Modifier.weight(1f))
+                            Text(text = "经度:${longitude.value}", modifier = Modifier.weight(1f))
+                        }
+                        Row {
+                            Text(text = "时间", modifier = Modifier.weight(1f))
+                            Text(text = "TTFF", modifier = Modifier.weight(1f))
+                        }
+                        Row {
+                            Text(text = "高度", modifier = Modifier.weight(1f))
+                            Text(text = "EH ACC", modifier = Modifier.weight(1f))
+                        }
+                        Row {
+                            Text(text = "高度(MSL)", modifier = Modifier.weight(1f))
+                            Text(text = "卫星数量", modifier = Modifier.weight(1f))
+                        }
+                        Row {
+                            Text(text = "速度", modifier = Modifier.weight(1f))
+                            Text(text = "方位", modifier = Modifier.weight(1f))
+                        }
+                        Row {
+                            Text(text = "速度精度", modifier = Modifier.weight(1f))
+                            Text(text = "方位精度", modifier = Modifier.weight(1f))
+                        }
+                        Row {
+                            Text(text = "PDOP", modifier = Modifier.weight(1f))
+                            Text(text = "H/V DOP", modifier = Modifier.weight(1f))
+                        }
                     }
                 }
             }
@@ -76,7 +104,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        gpsManager.stop()
+        locManager.stop()
         //locationAPI.stopGpsListener()
     }
 
