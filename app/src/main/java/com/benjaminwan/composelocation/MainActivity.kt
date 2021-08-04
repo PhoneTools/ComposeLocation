@@ -18,7 +18,6 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -34,10 +33,7 @@ import com.benjaminwan.composelocation.utils.*
 
 
 class MainActivity : AppCompatActivity() {
-    private val latitude = mutableStateOf<Double>(0.0)
-    private var longitude = mutableStateOf<Double>(0.0)
     private val locManager: LocManager = LocManager(App.INSTANCE)
-
     private fun getPermissions() {
         val permissions = arrayOf(
             Permission.ACCESS_FINE_LOCATION,
@@ -60,7 +56,6 @@ class MainActivity : AppCompatActivity() {
         makeSureLocEnable(this)
         setContent {
             ComposeLocationTheme {
-                // A surface container using the 'background' color from the theme
                 Surface(color = MaterialTheme.colors.background) {
                     Column {
                         val location by rememberFlowWithLifecycle(locManager.locationStateFlow).collectAsState(initial = Location(LocationManager.GPS_PROVIDER))
@@ -84,13 +79,14 @@ class MainActivity : AppCompatActivity() {
         getPermissions()
         runWithPermissions(Permission.ACCESS_FINE_LOCATION) {
             locManager.start()
+            locManager.addStatusListener()
         }
     }
 
     override fun onDestroy() {
         super.onDestroy()
         locManager.stop()
-        //locationAPI.stopGpsListener()
+        locManager.removeStatusListener()
     }
 }
 

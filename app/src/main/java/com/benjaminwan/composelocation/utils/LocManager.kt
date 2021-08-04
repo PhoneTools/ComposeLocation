@@ -7,7 +7,6 @@ import android.os.Build
 import android.os.Bundle
 import androidx.annotation.RequiresApi
 import androidx.core.location.GnssStatusCompat.*
-import com.orhanobut.logger.Logger
 import kotlinx.coroutines.flow.MutableStateFlow
 
 
@@ -41,8 +40,6 @@ class LocManager(context: Context) {
             locationListener = it
             locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, minTimeMs, minDistanceM, it)
         }
-        addStatusListener()
-        addNmeaListener()
     }
 
     @SuppressLint("MissingPermission")
@@ -50,12 +47,10 @@ class LocManager(context: Context) {
         locationListener?.let {
             locationManager.removeUpdates(it)
         }
-        removeStatusListener()
-        removeNmeaListener()
     }
 
     @SuppressLint("MissingPermission")
-    private fun addStatusListener() {
+    fun addStatusListener() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             gnssStatusListener().let {
                 gnssStatusListener = it
@@ -69,7 +64,7 @@ class LocManager(context: Context) {
         }
     }
 
-    private fun removeStatusListener() {
+    fun removeStatusListener() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             gnssStatusListener?.let {
                 locationManager.unregisterGnssStatusCallback(it)
@@ -82,7 +77,7 @@ class LocManager(context: Context) {
     }
 
     @SuppressLint("MissingPermission")
-    private fun addNmeaListener() {
+    fun addNmeaListener() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             onNmeaMessageListener().let {
                 onNmeaMessageListener = it
@@ -96,7 +91,7 @@ class LocManager(context: Context) {
         }
     }
 
-    private fun removeNmeaListener() {
+    fun removeNmeaListener() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             onNmeaMessageListener?.let {
                 locationManager.removeNmeaListener(it)
@@ -110,37 +105,29 @@ class LocManager(context: Context) {
 
     private fun locationListener() = object : LocationListener {
         override fun onLocationChanged(location: Location) {
-            Logger.i("location = $location")
-            Logger.i("latitude=${location.latitude} longitude=${location.longitude}")
-            Logger.i("accuracy=${location.accuracy} altitude=${location.altitude}")
-            Logger.i("bearing=${location.bearing} speed=${location.speed}")
-            Logger.i("time=${location.time} elapsedRealtimeNanos=${location.elapsedRealtimeNanos}")
-            Logger.i("provider=${location.provider}")
             locationStateFlow.value = location
         }
 
         override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {
-            Logger.i("onStatusChanged $provider $status $extras")
+            //Logger.i("onStatusChanged $provider $status $extras")
         }
 
         override fun onProviderEnabled(provider: String) {
-            Logger.i("onProviderEnabled $provider")
+            //Logger.i("onProviderEnabled $provider")
         }
 
         override fun onProviderDisabled(provider: String) {
-            Logger.i("onProviderDisabled $provider")
+            //Logger.i("onProviderDisabled $provider")
         }
     }
 
     @RequiresApi(Build.VERSION_CODES.N)
     private fun gnssStatusListener() = object : GnssStatus.Callback() {
         override fun onStarted() {
-            Logger.i("onStarted")
             timeToFirstFixStateFlow.value = Float.NaN
         }
 
         override fun onStopped() {
-            Logger.i("onStopped")
             timeToFirstFixStateFlow.value = Float.NaN
         }
 
@@ -149,7 +136,6 @@ class LocManager(context: Context) {
         }
 
         override fun onSatelliteStatusChanged(status: GnssStatus) {
-            Logger.i("onSatelliteStatusChanged")
             satelliteStateFlow.value = (0 until status.satelliteCount).map {
                 val svid = status.getSvid(it)
                 val constellationType = status.getConstellationType(it)
@@ -196,25 +182,20 @@ class LocManager(context: Context) {
     @SuppressLint("MissingPermission")
     private fun legacyStatusListener() = object : GpsStatus.Listener {
         override fun onGpsStatusChanged(event: Int) {
-            Logger.i("onGpsStatusChanged $event")
             when (event) {
                 GpsStatus.GPS_EVENT_STARTED -> {
-                    Logger.i("GPS_EVENT_STARTED")
                     timeToFirstFixStateFlow.value = Float.NaN
                 }
                 GpsStatus.GPS_EVENT_STOPPED -> {
-                    Logger.i("GPS_EVENT_STOPPED")
                     timeToFirstFixStateFlow.value = Float.NaN
                 }
                 GpsStatus.GPS_EVENT_FIRST_FIX -> {
-                    Logger.i("GPS_EVENT_FIRST_FIX")
                     val status = locationManager.getGpsStatus(null)
                     status?.let {
                         timeToFirstFixStateFlow.value = it.timeToFirstFix.toFloat() / 1000
                     }
                 }
                 GpsStatus.GPS_EVENT_SATELLITE_STATUS -> {
-                    Logger.i("GPS_EVENT_SATELLITE_STATUS")
                     mLegacyStatus = locationManager.getGpsStatus(mLegacyStatus)
                     val gpsStatus = mLegacyStatus
                     if (gpsStatus != null) {
