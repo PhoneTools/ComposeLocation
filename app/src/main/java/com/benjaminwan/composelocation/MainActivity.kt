@@ -66,8 +66,13 @@ class MainActivity : AppCompatActivity() {
                         val inViewCount = satellites.count { it.cn0DbHz > 0 }
                         val maxCount = satellites.size
                         val satellitesCountStr = "$usedCount/$inViewCount/$maxCount"
-                        LocationInfoCard(location, timeToFirstFixStr, satellitesCountStr)
-                        SatelliteListCard(satellites)
+                        val providerEnable by rememberFlowWithLifecycle(locManager.providerStateFlow).collectAsState(initial = false)
+                        if (providerEnable) {
+                            LocationInfoCard(location, timeToFirstFixStr, satellitesCountStr)
+                            SatelliteListCard(satellites)
+                        } else {
+                            Text(text = "位置信息服务已关闭，请到设置选项中启用", color = MaterialTheme.colors.error, style = MaterialTheme.typography.h6)
+                        }
                     }
                 }
             }

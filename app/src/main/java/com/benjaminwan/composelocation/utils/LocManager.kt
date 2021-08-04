@@ -32,6 +32,7 @@ class LocManager(context: Context) {
     val NmeaStateFlow = MutableStateFlow<Nmea>(Nmea())//GPS原始数据
     val locationStateFlow = MutableStateFlow<Location>(Location(LocationManager.GPS_PROVIDER))//位置
     val timeToFirstFixStateFlow = MutableStateFlow(Float.NaN)//初次定位时间 TimeToFirstFix
+    val providerStateFlow = MutableStateFlow(false) //位置服务开关状态
 
     @SuppressLint("MissingPermission")
     @JvmOverloads
@@ -40,6 +41,7 @@ class LocManager(context: Context) {
             locationListener = it
             locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, minTimeMs, minDistanceM, it)
         }
+        providerStateFlow.value = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
     }
 
     @SuppressLint("MissingPermission")
@@ -114,20 +116,24 @@ class LocManager(context: Context) {
 
         override fun onProviderEnabled(provider: String) {
             //Logger.i("onProviderEnabled $provider")
+            providerStateFlow.value = true
         }
 
         override fun onProviderDisabled(provider: String) {
             //Logger.i("onProviderDisabled $provider")
+            providerStateFlow.value = false
         }
     }
 
     @RequiresApi(Build.VERSION_CODES.N)
     private fun gnssStatusListener() = object : GnssStatus.Callback() {
         override fun onStarted() {
+            //Logger.i("onStarted")
             timeToFirstFixStateFlow.value = Float.NaN
         }
 
         override fun onStopped() {
+            //Logger.i("onStopped")
             timeToFirstFixStateFlow.value = Float.NaN
         }
 
@@ -184,9 +190,11 @@ class LocManager(context: Context) {
         override fun onGpsStatusChanged(event: Int) {
             when (event) {
                 GpsStatus.GPS_EVENT_STARTED -> {
+                    //Logger.i("GPS_EVENT_STARTED")
                     timeToFirstFixStateFlow.value = Float.NaN
                 }
                 GpsStatus.GPS_EVENT_STOPPED -> {
+                    //Logger.i("GPS_EVENT_STOPPED")
                     timeToFirstFixStateFlow.value = Float.NaN
                 }
                 GpsStatus.GPS_EVENT_FIRST_FIX -> {
