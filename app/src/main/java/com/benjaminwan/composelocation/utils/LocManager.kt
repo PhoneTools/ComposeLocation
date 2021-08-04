@@ -141,7 +141,7 @@ class LocManager(context: Context) {
 
         override fun onSatelliteStatusChanged(status: GnssStatus) {
             Logger.i("onSatelliteStatusChanged")
-            satelliteStateFlow.value = (0..status.satelliteCount).map {
+            satelliteStateFlow.value = (0 until status.satelliteCount).map {
                 val svid = status.getSvid(it)
                 val constellationType = status.getConstellationType(it)
                 val cn0DbHz = status.getCn0DbHz(it)
