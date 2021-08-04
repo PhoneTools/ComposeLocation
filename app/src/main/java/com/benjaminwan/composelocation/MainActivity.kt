@@ -118,8 +118,16 @@ fun LocationInfoCard(location: Location, timeToFirstFix: Long, satellitesCountSt
                 )
             }
             Row {
-                LocationText(header = "纬度", content = "${location.latitude}", modifier = Modifier.weight(1f))
-                LocationText(header = "经度", content = "${location.longitude}", modifier = Modifier.weight(1f))
+                LocationText(header = "纬度(度)", content = location.latitudeDegrees, modifier = Modifier.weight(1f))
+                LocationText(header = "经度(度)", content = location.longitudeDegrees, modifier = Modifier.weight(1f))
+            }
+            Row {
+                LocationText(header = "纬度(度分秒)", content = location.latitudeDegreesMinutesSeconds, modifier = Modifier.weight(1f))
+                LocationText(header = "经度(度分秒)", content = location.longitudeDegreesMinutesSeconds, modifier = Modifier.weight(1f))
+            }
+            Row {
+                LocationText(header = "纬度(度分)", content = location.latitudeDegreesDecimalMinutes, modifier = Modifier.weight(1f))
+                LocationText(header = "经度(度分)", content = location.longitudeDegreesDecimalMinutes, modifier = Modifier.weight(1f))
             }
             Row {
                 LocationText(header = "时间", content = location.timeStr, modifier = Modifier.weight(1f))
