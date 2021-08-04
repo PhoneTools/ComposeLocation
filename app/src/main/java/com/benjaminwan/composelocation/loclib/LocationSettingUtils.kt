@@ -32,7 +32,7 @@ fun isLocEnableElseDo(context: Context, func: () -> Unit) {
         MaterialAlertDialogBuilder(context)
             .setTitle(R.string.title_tip)
             .setMessage(R.string.dialog_gps_setting)
-            .setCancelable(false)
+            .setCancelable(true)
             .setPositiveButton(
                 R.string.dialog_goto_setting
             ) { dialog, which ->

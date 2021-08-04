@@ -1,4 +1,4 @@
-package com.benjaminwan.composelocation.utils
+package com.benjaminwan.composelocation.loclib
 
 import android.location.GnssStatus.*
 

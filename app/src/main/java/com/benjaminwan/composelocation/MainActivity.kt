@@ -1,7 +1,7 @@
 package com.benjaminwan.composelocation
 
 import android.location.Location
-import android.location.LocationManager
+import android.location.LocationManager.GPS_PROVIDER
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.compose.setContent
@@ -28,12 +28,13 @@ import com.afollestad.assent.askForPermissions
 import com.afollestad.assent.isAllGranted
 import com.afollestad.assent.runWithPermissions
 import com.benjaminwan.composelocation.app.App
+import com.benjaminwan.composelocation.loclib.LocationHelper
+import com.benjaminwan.composelocation.loclib.Satellite
 import com.benjaminwan.composelocation.ui.theme.ComposeLocationTheme
 import com.benjaminwan.composelocation.utils.*
 
-
 class MainActivity : AppCompatActivity() {
-    private val locManager: LocManager = LocManager(App.INSTANCE)
+    private val locationHelper: LocationHelper = LocationHelper(App.INSTANCE)
     private fun getPermissions() {
         val permissions = arrayOf(
             Permission.ACCESS_FINE_LOCATION,
@@ -58,15 +59,15 @@ class MainActivity : AppCompatActivity() {
             ComposeLocationTheme {
                 Surface(color = MaterialTheme.colors.background) {
                     Column {
-                        val location by rememberFlowWithLifecycle(locManager.locationStateFlow).collectAsState(initial = Location(LocationManager.GPS_PROVIDER))
-                        val timeToFirstFix by rememberFlowWithLifecycle(locManager.timeToFirstFixStateFlow).collectAsState(initial = Float.NaN)
+                        val location by rememberFlowWithLifecycle(locationHelper.locationStateFlow).collectAsState(initial = Location(GPS_PROVIDER))
+                        val timeToFirstFix by rememberFlowWithLifecycle(locationHelper.timeToFirstFixStateFlow).collectAsState(initial = Float.NaN)
                         val timeToFirstFixStr = if (timeToFirstFix.isNaN()) "" else timeToFirstFix.format("0.0")
-                        val satellites by rememberFlowWithLifecycle(locManager.satelliteStateFlow).collectAsState(initial = emptyList())
+                        val satellites by rememberFlowWithLifecycle(locationHelper.satelliteStateFlow).collectAsState(initial = emptyList())
                         val usedCount = satellites.count { it.usedInFix }
                         val inViewCount = satellites.count { it.cn0DbHz > 0 }
                         val maxCount = satellites.size
                         val satellitesCountStr = "$usedCount/$inViewCount/$maxCount"
-                        val providerEnable by rememberFlowWithLifecycle(locManager.providerStateFlow).collectAsState(initial = false)
+                        val providerEnable by rememberFlowWithLifecycle(locationHelper.providerStateFlow).collectAsState(initial = false)
                         if (providerEnable) {
                             LocationInfoCard(location, timeToFirstFixStr, satellitesCountStr)
                             SatelliteListCard(satellites)
@@ -83,15 +84,15 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         getPermissions()
         runWithPermissions(Permission.ACCESS_FINE_LOCATION) {
-            locManager.start()
-            locManager.addStatusListener()
+            locationHelper.start()
+            locationHelper.addStatusListener()
         }
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        locManager.stop()
-        locManager.removeStatusListener()
+        locationHelper.stop()
+        locationHelper.removeStatusListener()
     }
 }
 

@@ -1,4 +1,4 @@
-package com.benjaminwan.composelocation.utils
+package com.benjaminwan.composelocation.loclib
 
 import android.annotation.SuppressLint
 import android.content.Context
@@ -10,7 +10,7 @@ import androidx.core.location.GnssStatusCompat.*
 import kotlinx.coroutines.flow.MutableStateFlow
 
 
-class LocManager(context: Context) {
+class LocationHelper(context: Context) {
     companion object {
         const val MIN_TIME_MS: Long = 1000L //更新间隔(毫秒):1000
         const val MIN_DISTANCE_M: Float = 0.0f //最小距离(当位置距离变化超过此值时更新):0
