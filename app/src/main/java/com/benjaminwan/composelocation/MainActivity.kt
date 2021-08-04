@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.afollestad.assent.Permission
 import com.afollestad.assent.askForPermissions
 import com.afollestad.assent.isAllGranted
@@ -63,32 +64,13 @@ class MainActivity : AppCompatActivity() {
                 Surface(color = MaterialTheme.colors.background) {
                     Column {
                         val location by rememberFlowWithLifecycle(locManager.locationStateFlow).collectAsState(initial = Location(LocationManager.GPS_PROVIDER))
-                        LocationInfoCard(location = location)
-                        Row {
-                            Text(text = "时间", modifier = Modifier.weight(1f))
-                            Text(text = "TTFF", modifier = Modifier.weight(1f))
-                        }
-                        Row {
-                            Text(text = "高度", modifier = Modifier.weight(1f))
-                            Text(text = "EH ACC", modifier = Modifier.weight(1f))
-                        }
-                        Row {
-                            Text(text = "高度(MSL)", modifier = Modifier.weight(1f))
-                            Text(text = "卫星数量", modifier = Modifier.weight(1f))
-                        }
-                        Row {
-                            Text(text = "速度", modifier = Modifier.weight(1f))
-                            Text(text = "方位", modifier = Modifier.weight(1f))
-                        }
-                        Row {
-                            Text(text = "速度精度", modifier = Modifier.weight(1f))
-                            Text(text = "方位精度", modifier = Modifier.weight(1f))
-                        }
-                        Row {
-                            Text(text = "PDOP", modifier = Modifier.weight(1f))
-                            Text(text = "H/V DOP", modifier = Modifier.weight(1f))
-                        }
+                        val timeToFirstFix by rememberFlowWithLifecycle(locManager.timeToFirstFixStateFlow).collectAsState(initial = 0L)
                         val satellites by rememberFlowWithLifecycle(locManager.satelliteStateFlow).collectAsState(initial = emptyList())
+                        val usedCount = satellites.count { it.usedInFix }
+                        val inViewCount = satellites.count { it.cn0DbHz > 0 }
+                        val maxCount = satellites.size
+                        val satellitesCountStr = "$usedCount/$inViewCount/$maxCount"
+                        LocationInfoCard(location, timeToFirstFix, satellitesCountStr)
                         SatelliteListCard(satellites)
                     }
                 }
@@ -112,7 +94,7 @@ class MainActivity : AppCompatActivity() {
 }
 
 @Composable
-fun LocationInfoCard(location: Location) {
+fun LocationInfoCard(location: Location, timeToFirstFix: Long, satellitesCountStr: String) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -122,9 +104,41 @@ fun LocationInfoCard(location: Location) {
         elevation = 2.dp,
     ) {
         Column {
+            Row(
+                modifier = Modifier
+                    .background(color = MaterialTheme.colors.primary)
+                    .fillMaxWidth(), horizontalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = "位置信息",
+                    textAlign = TextAlign.Center,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colors.onPrimary
+                )
+            }
             Row {
                 LocationText(header = "纬度", content = "${location.latitude}", modifier = Modifier.weight(1f))
                 LocationText(header = "经度", content = "${location.longitude}", modifier = Modifier.weight(1f))
+            }
+            Row {
+                LocationText(header = "时间", content = location.timeStr, modifier = Modifier.weight(1f))
+                LocationText(header = "初次定位耗时(秒)", content = "$timeToFirstFix", modifier = Modifier.weight(1f))
+            }
+            Row {
+                LocationText(header = "海拔(米)", content = location.accuracyStr, modifier = Modifier.weight(1f))
+                LocationText(header = "海拔精度(米)", content = location.verticalAccuracyMeterStr, modifier = Modifier.weight(1f))
+            }
+            Row {
+                LocationText(header = "速度(米/秒)", content = location.speedStr, modifier = Modifier.weight(1f))
+                LocationText(header = "速度精度(米/秒)", content = location.speedAccuracyMetersPerSecondStr, modifier = Modifier.weight(1f))
+            }
+            Row {
+                LocationText(header = "方位(°)", content = location.bearingStr, modifier = Modifier.weight(1f))
+                LocationText(header = "方位精度(°)", content = location.bearingAccuracyDegreesStr, modifier = Modifier.weight(1f))
+            }
+            Row {
+                LocationText(header = "卫星数量(使用/可见/总共)", content = satellitesCountStr, modifier = Modifier.weight(1f))
             }
         }
     }
@@ -145,18 +159,18 @@ fun SatelliteListCard(satellites: List<Satellite>) {
                 Row(modifier = Modifier.background(color = MaterialTheme.colors.primary)) {
                     SatelliteHeaderText(text = "ID", modifier = Modifier.weight(1f))
                     SatelliteHeaderText(text = "TYPE", modifier = Modifier.weight(1f))
-                    SatelliteHeaderText(text = "C/N0", modifier = Modifier.weight(1f))
-                    SatelliteHeaderText(text = "高度角", modifier = Modifier.weight(1f))
-                    SatelliteHeaderText(text = "方位角", modifier = Modifier.weight(1f))
+                    SatelliteHeaderText(text = "CN0(dB-Hz)", modifier = Modifier.weight(1f))
+                    SatelliteHeaderText(text = "高度角(°)", modifier = Modifier.weight(1f))
+                    SatelliteHeaderText(text = "方位角(°)", modifier = Modifier.weight(1f))
                 }
             }
             items(satellites) { satellite ->
                 Row {
                     SatelliteText(text = "${satellite.svid}", modifier = Modifier.weight(1f))
                     SatelliteText(text = satellite.constellation, modifier = Modifier.weight(1f))
-                    SatelliteText(text = "${satellite.cn0DbHz}", modifier = Modifier.weight(1f))
-                    SatelliteText(text = "${satellite.elevationDegrees}", modifier = Modifier.weight(1f))
-                    SatelliteText(text = "${satellite.azimuthDegrees}", modifier = Modifier.weight(1f))
+                    SatelliteText(text = satellite.cn0DbHzStr, modifier = Modifier.weight(1f))
+                    SatelliteText(text = satellite.elevationDegreesStr, modifier = Modifier.weight(1f))
+                    SatelliteText(text = satellite.azimuthDegreesStr, modifier = Modifier.weight(1f))
                 }
             }
         }
@@ -165,9 +179,10 @@ fun SatelliteListCard(satellites: List<Satellite>) {
 
 @Composable
 fun LocationText(header: String, content: String, modifier: Modifier = Modifier) {
-    Row(modifier = modifier, horizontalArrangement = Arrangement.Center) {
-        Text(text = header, modifier = modifier, textAlign = TextAlign.Center, fontWeight = FontWeight.Bold)
-        Text(text = content, modifier = modifier, textAlign = TextAlign.Center)
+    Row(modifier = modifier, horizontalArrangement = Arrangement.Start) {
+        Text(text = header, textAlign = TextAlign.Center, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(text = content, textAlign = TextAlign.Center, fontSize = 12.sp)
     }
 }
 

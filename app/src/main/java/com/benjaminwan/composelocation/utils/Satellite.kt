@@ -3,14 +3,14 @@ package com.benjaminwan.composelocation.utils
 import android.location.GnssStatus.*
 
 data class Satellite(
-    val svid: Int,
-    val constellationType: Int = CONSTELLATION_UNKNOWN,
-    val cn0DbHz: Float = Float.NaN,
+    val svid: Int,//卫星标识号
+    val constellationType: Int = CONSTELLATION_UNKNOWN,//卫星类型
+    val cn0DbHz: Float = Float.NaN,//以dB-Hz为单位检索卫星天线处指定索引处的载波与噪声密度
     val elevationDegrees: Float = Float.NaN,//高度角
     val azimuthDegrees: Float = Float.NaN,//方位角
-    val hasEphemerisData: Boolean = false,//星历数据
-    val hasAlmanacData: Boolean = false,//年历资料
-    val usedInFix: Boolean = false,//用于固定
+    val hasEphemerisData: Boolean = false,//否具有星历数据
+    val hasAlmanacData: Boolean = false,//否具有年历数据
+    val usedInFix: Boolean = false,//报告指定指标的卫星是否用于计算最近的位置修正
     val hasCarrierFrequencyHz: Boolean = false,//VERSION_CODES.O 载波频率
     val carrierFrequencyHz: Float = Float.NaN,//VERSION_CODES.O 载波频率
     val hasBasebandCn0DbHz: Boolean = false,//Build.VERSION_CODES.R 基带Cn0
@@ -28,4 +28,29 @@ data class Satellite(
             CONSTELLATION_IRNSS -> "IRNSS"
             else -> Integer.toString(constellationType)
         }
+
+    val cn0DbHzStr: String
+        get() = if (cn0DbHz > 0) cn0DbHz.toString() else ""
+
+    val elevationDegreesStr: String
+        get() = if (elevationDegrees > 0) elevationDegrees.toString() else ""
+
+    val azimuthDegreesStr: String
+        get() = if (azimuthDegrees > 0) azimuthDegrees.toString() else ""
+
+
 }
+
+/**
+ * 卫星标识号。
+ * 这个svid是大多数星座的伪随机数。 这是Glonass的FCN和OSN号码。
+ * 区分是通过查看星座字段 getConstellationType(int)预期值在以下范围内：
+ * GPS: 1-32
+ * SBAS: 120-151, 183-192
+ * GLONASS: One of: OSN, or FCN+100
+ * 1-24 as the orbital slot number (OSN) (preferred, if known)
+ * 93-106 as the frequency channel number (FCN) (-7 to +6) plus 100. i.e. encode FCN of -7 as 93, 0 as 100, and +6 as 106
+ * QZSS: 193-200
+ * Galileo: 1-36
+ * Beidou: 1-37
+ * */

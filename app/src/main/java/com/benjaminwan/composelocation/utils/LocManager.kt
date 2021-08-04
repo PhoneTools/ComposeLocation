@@ -8,6 +8,7 @@ import android.os.Bundle
 import androidx.annotation.RequiresApi
 import com.orhanobut.logger.Logger
 import kotlinx.coroutines.flow.MutableStateFlow
+import java.util.concurrent.TimeUnit
 
 
 class LocManager(context: Context) {
@@ -20,15 +21,18 @@ class LocManager(context: Context) {
     private val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
     private var locationListener: LocationListener? = null
 
+    //<=Android M (6.0.1)
     private var legacyStatusListener: GpsStatus.Listener? = null
     private var legacyNmeaListener: GpsStatus.NmeaListener? = null
 
+    //>=Android N (7.0)
     private var gnssStatusListener: GnssStatus.Callback? = null
     private var onNmeaMessageListener: OnNmeaMessageListener? = null
 
-    val satelliteStateFlow = MutableStateFlow<List<Satellite>>(emptyList())
-    val NmeaStateFlow = MutableStateFlow<Nmea>(Nmea())
-    val locationStateFlow = MutableStateFlow<Location>(Location(LocationManager.GPS_PROVIDER))
+    val satelliteStateFlow = MutableStateFlow<List<Satellite>>(emptyList())//卫星列表
+    val NmeaStateFlow = MutableStateFlow<Nmea>(Nmea())//GPS原始数据
+    val locationStateFlow = MutableStateFlow<Location>(Location(LocationManager.GPS_PROVIDER))//位置
+    val timeToFirstFixStateFlow = MutableStateFlow(0L)//初次定位时间 TimeToFirstFix
 
     @SuppressLint("MissingPermission")
     @JvmOverloads
@@ -132,14 +136,16 @@ class LocManager(context: Context) {
     private fun gnssStatusListener() = object : GnssStatus.Callback() {
         override fun onStarted() {
             Logger.i("onStarted")
+            timeToFirstFixStateFlow.value = 0L
         }
 
         override fun onStopped() {
             Logger.i("onStopped")
+            timeToFirstFixStateFlow.value = 0L
         }
 
         override fun onFirstFix(ttffMillis: Int) {
-            Logger.i("onFirstFix $ttffMillis")
+            timeToFirstFixStateFlow.value = TimeUnit.MILLISECONDS.toSeconds(ttffMillis.toLong())
         }
 
         override fun onSatelliteStatusChanged(status: GnssStatus) {
@@ -194,19 +200,25 @@ class LocManager(context: Context) {
             when (event) {
                 GpsStatus.GPS_EVENT_STARTED -> {
                     Logger.i("GPS_EVENT_STARTED")
+                    timeToFirstFixStateFlow.value = 0L
                 }
                 GpsStatus.GPS_EVENT_STOPPED -> {
                     Logger.i("GPS_EVENT_STOPPED")
+                    timeToFirstFixStateFlow.value = 0L
                 }
                 GpsStatus.GPS_EVENT_FIRST_FIX -> {
                     Logger.i("GPS_EVENT_FIRST_FIX")
+                    val status = locationManager.getGpsStatus(null)
+                    status?.let {
+                        timeToFirstFixStateFlow.value = TimeUnit.MILLISECONDS.toSeconds(it.timeToFirstFix.toLong())
+                    }
                 }
                 GpsStatus.GPS_EVENT_SATELLITE_STATUS -> {
                     Logger.i("GPS_EVENT_SATELLITE_STATUS")
                     mLegacyStatus = locationManager.getGpsStatus(mLegacyStatus)
                     val gpsStatus = mLegacyStatus
                     if (gpsStatus != null) {
-                        // 获取卫星颗数的默认最大值
+                        // 获取卫星颗数
                         val maxSatellites = gpsStatus.maxSatellites
                         Logger.i("maxSatellites=$maxSatellites")
                         // 创建一个迭代器保存所有卫星
