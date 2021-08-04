@@ -64,13 +64,14 @@ class MainActivity : AppCompatActivity() {
                 Surface(color = MaterialTheme.colors.background) {
                     Column {
                         val location by rememberFlowWithLifecycle(locManager.locationStateFlow).collectAsState(initial = Location(LocationManager.GPS_PROVIDER))
-                        val timeToFirstFix by rememberFlowWithLifecycle(locManager.timeToFirstFixStateFlow).collectAsState(initial = 0L)
+                        val timeToFirstFix by rememberFlowWithLifecycle(locManager.timeToFirstFixStateFlow).collectAsState(initial = Float.NaN)
+                        val timeToFirstFixStr = if (timeToFirstFix.isNaN()) "" else timeToFirstFix.format("0.0")
                         val satellites by rememberFlowWithLifecycle(locManager.satelliteStateFlow).collectAsState(initial = emptyList())
                         val usedCount = satellites.count { it.usedInFix }
                         val inViewCount = satellites.count { it.cn0DbHz > 0 }
                         val maxCount = satellites.size
                         val satellitesCountStr = "$usedCount/$inViewCount/$maxCount"
-                        LocationInfoCard(location, timeToFirstFix, satellitesCountStr)
+                        LocationInfoCard(location, timeToFirstFixStr, satellitesCountStr)
                         SatelliteListCard(satellites)
                     }
                 }
@@ -94,7 +95,7 @@ class MainActivity : AppCompatActivity() {
 }
 
 @Composable
-fun LocationInfoCard(location: Location, timeToFirstFix: Long, satellitesCountStr: String) {
+fun LocationInfoCard(location: Location, timeToFirstFix: String, satellitesCountStr: String) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -131,7 +132,7 @@ fun LocationInfoCard(location: Location, timeToFirstFix: Long, satellitesCountSt
             }
             Row {
                 LocationText(header = "时间", content = location.timeStr, modifier = Modifier.weight(1f))
-                LocationText(header = "初次定位耗时(秒)", content = "$timeToFirstFix", modifier = Modifier.weight(1f))
+                LocationText(header = "初次定位耗时(秒)", content = timeToFirstFix, modifier = Modifier.weight(1f))
             }
             Row {
                 LocationText(header = "海拔(米)", content = location.accuracyStr, modifier = Modifier.weight(1f))

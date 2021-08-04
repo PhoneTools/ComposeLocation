@@ -6,9 +6,9 @@ import android.location.*
 import android.os.Build
 import android.os.Bundle
 import androidx.annotation.RequiresApi
+import androidx.core.location.GnssStatusCompat.*
 import com.orhanobut.logger.Logger
 import kotlinx.coroutines.flow.MutableStateFlow
-import java.util.concurrent.TimeUnit
 
 
 class LocManager(context: Context) {
@@ -32,7 +32,7 @@ class LocManager(context: Context) {
     val satelliteStateFlow = MutableStateFlow<List<Satellite>>(emptyList())//卫星列表
     val NmeaStateFlow = MutableStateFlow<Nmea>(Nmea())//GPS原始数据
     val locationStateFlow = MutableStateFlow<Location>(Location(LocationManager.GPS_PROVIDER))//位置
-    val timeToFirstFixStateFlow = MutableStateFlow(0L)//初次定位时间 TimeToFirstFix
+    val timeToFirstFixStateFlow = MutableStateFlow(Float.NaN)//初次定位时间 TimeToFirstFix
 
     @SuppressLint("MissingPermission")
     @JvmOverloads
@@ -136,16 +136,16 @@ class LocManager(context: Context) {
     private fun gnssStatusListener() = object : GnssStatus.Callback() {
         override fun onStarted() {
             Logger.i("onStarted")
-            timeToFirstFixStateFlow.value = 0L
+            timeToFirstFixStateFlow.value = Float.NaN
         }
 
         override fun onStopped() {
             Logger.i("onStopped")
-            timeToFirstFixStateFlow.value = 0L
+            timeToFirstFixStateFlow.value = Float.NaN
         }
 
         override fun onFirstFix(ttffMillis: Int) {
-            timeToFirstFixStateFlow.value = TimeUnit.MILLISECONDS.toSeconds(ttffMillis.toLong())
+            timeToFirstFixStateFlow.value = ttffMillis.toFloat() / 1000
         }
 
         override fun onSatelliteStatusChanged(status: GnssStatus) {
@@ -200,17 +200,17 @@ class LocManager(context: Context) {
             when (event) {
                 GpsStatus.GPS_EVENT_STARTED -> {
                     Logger.i("GPS_EVENT_STARTED")
-                    timeToFirstFixStateFlow.value = 0L
+                    timeToFirstFixStateFlow.value = Float.NaN
                 }
                 GpsStatus.GPS_EVENT_STOPPED -> {
                     Logger.i("GPS_EVENT_STOPPED")
-                    timeToFirstFixStateFlow.value = 0L
+                    timeToFirstFixStateFlow.value = Float.NaN
                 }
                 GpsStatus.GPS_EVENT_FIRST_FIX -> {
                     Logger.i("GPS_EVENT_FIRST_FIX")
                     val status = locationManager.getGpsStatus(null)
                     status?.let {
-                        timeToFirstFixStateFlow.value = TimeUnit.MILLISECONDS.toSeconds(it.timeToFirstFix.toLong())
+                        timeToFirstFixStateFlow.value = it.timeToFirstFix.toFloat() / 1000
                     }
                 }
                 GpsStatus.GPS_EVENT_SATELLITE_STATUS -> {
@@ -219,19 +219,26 @@ class LocManager(context: Context) {
                     val gpsStatus = mLegacyStatus
                     if (gpsStatus != null) {
                         // 获取卫星颗数
-                        val maxSatellites = gpsStatus.maxSatellites
-                        Logger.i("maxSatellites=$maxSatellites")
-                        // 创建一个迭代器保存所有卫星
-                        gpsStatus?.satellites?.forEach {
-                            Logger.i("$it")
+                        //val maxSatellites = gpsStatus.maxSatellites
+                        //Logger.i("maxSatellites=$maxSatellites")
+                        // 卫星列表
+                        val satellites = gpsStatus?.satellites?.map {
+                            val svid = it.prn
+                            val constellationType = getGnssType(it.prn)
+                            val cn0DbHz = it.snr
+                            val elevationDegrees = it.elevation
+                            val azimuthDegrees = it.azimuth
+                            val hasEphemerisData = it.hasEphemeris()
+                            val hasAlmanacData = it.hasAlmanac()
+                            val usedInFix = it.usedInFix()
+                            Satellite(
+                                svid, constellationType,
+                                cn0DbHz, elevationDegrees,
+                                azimuthDegrees, hasEphemerisData,
+                                hasAlmanacData, usedInFix,
+                            )
                         }
-                        val iters: Iterator<GpsSatellite> = gpsStatus.satellites.iterator()
-                        var count = 0
-                        while (iters.hasNext() && count <= maxSatellites) {
-                            val s = iters.next()
-                            Logger.i("$s")
-                            count++
-                        }
+                        satelliteStateFlow.value = satellites ?: emptyList()
                     }
                 }
             }
@@ -248,6 +255,36 @@ class LocManager(context: Context) {
     private fun onNmeaMessageListener() = object : OnNmeaMessageListener {
         override fun onNmeaMessage(message: String?, timestamp: Long) {
             NmeaStateFlow.value = Nmea(timestamp, message ?: "")
+        }
+    }
+
+    private fun getGnssType(prn: Int): Int {
+        return if (prn >= 1 && prn <= 32) {
+            CONSTELLATION_GPS
+        } else if (prn == 33) {
+            CONSTELLATION_SBAS
+        } else if (prn == 39) {
+            CONSTELLATION_SBAS
+        } else if (prn >= 40 && prn <= 41) {
+            CONSTELLATION_SBAS
+        } else if (prn == 46) {
+            CONSTELLATION_SBAS
+        } else if (prn == 48) {
+            CONSTELLATION_SBAS
+        } else if (prn == 49) {
+            CONSTELLATION_SBAS
+        } else if (prn == 51) {
+            CONSTELLATION_SBAS
+        } else if (prn >= 65 && prn <= 96) {
+            CONSTELLATION_GLONASS
+        } else if (prn >= 193 && prn <= 200) {
+            CONSTELLATION_QZSS
+        } else if (prn >= 201 && prn <= 235) {
+            CONSTELLATION_BEIDOU
+        } else if (prn >= 301 && prn <= 336) {
+            CONSTELLATION_GALILEO
+        } else {
+            CONSTELLATION_UNKNOWN
         }
     }
 
