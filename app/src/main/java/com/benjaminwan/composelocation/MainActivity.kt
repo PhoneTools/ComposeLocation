@@ -1,5 +1,7 @@
 package com.benjaminwan.composelocation
 
+import android.location.Location
+import android.location.LocationManager
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.compose.setContent
@@ -60,10 +62,8 @@ class MainActivity : AppCompatActivity() {
                 // A surface container using the 'background' color from the theme
                 Surface(color = MaterialTheme.colors.background) {
                     Column {
-                        Row {
-                            Text(text = "纬度:${latitude.value}", modifier = Modifier.weight(1f))
-                            Text(text = "经度:${longitude.value}", modifier = Modifier.weight(1f))
-                        }
+                        val location by rememberFlowWithLifecycle(locManager.locationStateFlow).collectAsState(initial = Location(LocationManager.GPS_PROVIDER))
+                        LocationInfoCard(location = location)
                         Row {
                             Text(text = "时间", modifier = Modifier.weight(1f))
                             Text(text = "TTFF", modifier = Modifier.weight(1f))
@@ -112,6 +112,25 @@ class MainActivity : AppCompatActivity() {
 }
 
 @Composable
+fun LocationInfoCard(location: Location) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .wrapContentHeight()
+            .padding(4.dp, 2.dp),
+        shape = RoundedCornerShape(8.dp),
+        elevation = 2.dp,
+    ) {
+        Column {
+            Row {
+                LocationText(header = "纬度", content = "${location.latitude}", modifier = Modifier.weight(1f))
+                LocationText(header = "经度", content = "${location.longitude}", modifier = Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+@Composable
 fun SatelliteListCard(satellites: List<Satellite>) {
     Card(
         modifier = Modifier
@@ -145,8 +164,23 @@ fun SatelliteListCard(satellites: List<Satellite>) {
 }
 
 @Composable
+fun LocationText(header: String, content: String, modifier: Modifier = Modifier) {
+    Row(modifier = modifier, horizontalArrangement = Arrangement.Center) {
+        Text(text = header, modifier = modifier, textAlign = TextAlign.Center, fontWeight = FontWeight.Bold)
+        Text(text = content, modifier = modifier, textAlign = TextAlign.Center)
+    }
+}
+
+@Composable
 fun SatelliteHeaderText(text: String, modifier: Modifier = Modifier) {
-    Text(text = text, style = MaterialTheme.typography.caption, modifier = modifier, textAlign = TextAlign.Center, fontWeight = FontWeight.Bold,color = MaterialTheme.colors.onPrimary)
+    Text(
+        text = text,
+        style = MaterialTheme.typography.caption,
+        modifier = modifier,
+        textAlign = TextAlign.Center,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colors.onPrimary
+    )
 }
 
 @Composable

@@ -28,6 +28,7 @@ class LocManager(context: Context) {
 
     val satelliteStateFlow = MutableStateFlow<List<Satellite>>(emptyList())
     val NmeaStateFlow = MutableStateFlow<Nmea>(Nmea())
+    val locationStateFlow = MutableStateFlow<Location>(Location(LocationManager.GPS_PROVIDER))
 
     @SuppressLint("MissingPermission")
     @JvmOverloads
@@ -105,11 +106,13 @@ class LocManager(context: Context) {
 
     private fun locationListener() = object : LocationListener {
         override fun onLocationChanged(location: Location) {
+            Logger.i("location = $location")
             Logger.i("latitude=${location.latitude} longitude=${location.longitude}")
             Logger.i("accuracy=${location.accuracy} altitude=${location.altitude}")
             Logger.i("bearing=${location.bearing} speed=${location.speed}")
             Logger.i("time=${location.time} elapsedRealtimeNanos=${location.elapsedRealtimeNanos}")
             Logger.i("provider=${location.provider}")
+            locationStateFlow.value = location
         }
 
         override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {
