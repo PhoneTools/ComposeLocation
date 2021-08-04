@@ -7,6 +7,7 @@ import android.os.Build
 import android.os.Bundle
 import androidx.annotation.RequiresApi
 import com.orhanobut.logger.Logger
+import kotlinx.coroutines.flow.MutableStateFlow
 
 
 class LocManager(context: Context) {
@@ -17,37 +18,110 @@ class LocManager(context: Context) {
     }
 
     private val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
-    private var gnssStatusListener: GnssStatus.Callback? = null
+    private var locationListener: LocationListener? = null
+
     private var legacyStatusListener: GpsStatus.Listener? = null
+    private var legacyNmeaListener: GpsStatus.NmeaListener? = null
+
+    private var gnssStatusListener: GnssStatus.Callback? = null
+    private var onNmeaMessageListener: OnNmeaMessageListener? = null
+
+    val satelliteStateFlow = MutableStateFlow<List<Satellite>>(emptyList())
+    val NmeaStateFlow = MutableStateFlow<Nmea>(Nmea())
 
     @SuppressLint("MissingPermission")
     @JvmOverloads
-    fun startRequestLocationUpdates(minTimeMs: Long = MIN_TIME_MS, minDistanceM: Float = MIN_DISTANCE_M) {
-        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, minTimeMs, minDistanceM, locationListener)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            val listener = gnssStatusListener()
-            gnssStatusListener = listener
-            locationManager.registerGnssStatusCallback(listener)
-        } else {
-            val listener = legacyStatusListener()
-            legacyStatusListener = listener
-            locationManager.addGpsStatusListener(listener)
+    fun start(minTimeMs: Long = MIN_TIME_MS, minDistanceM: Float = MIN_DISTANCE_M) {
+        locationListener().let {
+            locationListener = it
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, minTimeMs, minDistanceM, it)
         }
+        addStatusListener()
+        addNmeaListener()
     }
 
     @SuppressLint("MissingPermission")
     fun stop() {
-        locationManager.removeUpdates(locationListener)
+        locationListener?.let {
+            locationManager.removeUpdates(it)
+        }
+        removeStatusListener()
+        removeNmeaListener()
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun addStatusListener() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            val listener = gnssStatusListener
-            if (listener != null) {
-                locationManager.unregisterGnssStatusCallback(listener)
+            gnssStatusListener().let {
+                gnssStatusListener = it
+                locationManager.registerGnssStatusCallback(it)
             }
         } else {
-            val listener = legacyStatusListener
-            if (listener != null) {
-                locationManager.removeGpsStatusListener(listener)
+            legacyStatusListener().let {
+                legacyStatusListener = it
+                locationManager.addGpsStatusListener(it)
             }
+        }
+    }
+
+    private fun removeStatusListener() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            gnssStatusListener?.let {
+                locationManager.unregisterGnssStatusCallback(it)
+            }
+        } else {
+            legacyStatusListener?.let {
+                locationManager.removeGpsStatusListener(it)
+            }
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun addNmeaListener() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            onNmeaMessageListener().let {
+                onNmeaMessageListener = it
+                locationManager.addNmeaListener(it)
+            }
+        } else {
+            legacyNmeaListener().let {
+                legacyNmeaListener = it
+                locationManager.addNmeaListener(it)
+            }
+        }
+    }
+
+    private fun removeNmeaListener() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            onNmeaMessageListener?.let {
+                locationManager.removeNmeaListener(it)
+            }
+        } else {
+            legacyNmeaListener?.let {
+                locationManager.removeNmeaListener(it)
+            }
+        }
+    }
+
+    private fun locationListener() = object : LocationListener {
+        override fun onLocationChanged(location: Location) {
+            Logger.i("latitude=${location.latitude} longitude=${location.longitude}")
+            Logger.i("accuracy=${location.accuracy} altitude=${location.altitude}")
+            Logger.i("bearing=${location.bearing} speed=${location.speed}")
+            Logger.i("time=${location.time} elapsedRealtimeNanos=${location.elapsedRealtimeNanos}")
+            Logger.i("provider=${location.provider}")
+        }
+
+        override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {
+            Logger.i("onStatusChanged $provider $status $extras")
+        }
+
+        override fun onProviderEnabled(provider: String) {
+            Logger.i("onProviderEnabled $provider")
+        }
+
+        override fun onProviderDisabled(provider: String) {
+            Logger.i("onProviderDisabled $provider")
         }
     }
 
@@ -67,30 +141,43 @@ class LocManager(context: Context) {
 
         override fun onSatelliteStatusChanged(status: GnssStatus) {
             Logger.i("onSatelliteStatusChanged")
-            (0..status.satelliteCount).forEach {
+            satelliteStateFlow.value = (0..status.satelliteCount).map {
                 val svid = status.getSvid(it)
                 val constellationType = status.getConstellationType(it)
-                val type = when (constellationType) {
-                    GnssStatus.CONSTELLATION_UNKNOWN -> "UNKNOWN"
-                    GnssStatus.CONSTELLATION_GPS -> "GPS"
-                    GnssStatus.CONSTELLATION_SBAS -> "SBAS"
-                    GnssStatus.CONSTELLATION_GLONASS -> "GLONASS"
-                    GnssStatus.CONSTELLATION_QZSS -> "QZSS"
-                    GnssStatus.CONSTELLATION_BEIDOU -> "BEIDOU"
-                    GnssStatus.CONSTELLATION_GALILEO -> "GALILEO"
-                    GnssStatus.CONSTELLATION_IRNSS -> "IRNSS"
-                    else -> Integer.toString(constellationType)
-                }
                 val cn0DbHz = status.getCn0DbHz(it)
-                val getElevationDegrees = status.getElevationDegrees(it)
+                val elevationDegrees = status.getElevationDegrees(it)
                 val azimuthDegrees = status.getAzimuthDegrees(it)
                 val hasEphemerisData = status.hasEphemerisData(it)
                 val hasAlmanacData = status.hasAlmanacData(it)
                 val usedInFix = status.usedInFix(it)
-                val hasCarrierFrequencyHz = status.hasCarrierFrequencyHz(it)
-                val carrierFrequencyHz = status.getCarrierFrequencyHz(it)
-                val hasBasebandCn0DbHz = status.hasBasebandCn0DbHz(it)
-                val basebandCn0DbHz = status.getBasebandCn0DbHz(it)
+                val hasCarrierFrequencyHz = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    status.hasCarrierFrequencyHz(it)
+                } else {
+                    false
+                }
+                val carrierFrequencyHz = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    status.getCarrierFrequencyHz(it)
+                } else {
+                    Float.NaN
+                }
+                val hasBasebandCn0DbHz = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    status.hasBasebandCn0DbHz(it)
+                } else {
+                    false
+                }
+                val basebandCn0DbHz = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    status.getBasebandCn0DbHz(it)
+                } else {
+                    Float.NaN
+                }
+                Satellite(
+                    svid, constellationType,
+                    cn0DbHz, elevationDegrees,
+                    azimuthDegrees, hasEphemerisData,
+                    hasAlmanacData, usedInFix,
+                    hasCarrierFrequencyHz, carrierFrequencyHz,
+                    hasBasebandCn0DbHz, basebandCn0DbHz
+                )
             }
         }
     }
@@ -136,25 +223,16 @@ class LocManager(context: Context) {
         }
     }
 
-    private val locationListener = object : LocationListener {
-        override fun onLocationChanged(location: Location) {
-            Logger.i("latitude=${location.latitude} longitude=${location.longitude}")
-            Logger.i("accuracy=${location.accuracy} altitude=${location.altitude}")
-            Logger.i("bearing=${location.bearing} speed=${location.speed}")
-            Logger.i("time=${location.time} elapsedRealtimeNanos=${location.elapsedRealtimeNanos}")
-            Logger.i("provider=${location.provider}")
+    private fun legacyNmeaListener() = object : GpsStatus.NmeaListener {
+        override fun onNmeaReceived(timestamp: Long, nmea: String?) {
+            NmeaStateFlow.value = Nmea(timestamp, nmea ?: "")
         }
+    }
 
-        override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {
-            Logger.i("onStatusChanged $provider $status $extras")
-        }
-
-        override fun onProviderEnabled(provider: String) {
-            Logger.i("onProviderEnabled $provider")
-        }
-
-        override fun onProviderDisabled(provider: String) {
-            Logger.i("onProviderDisabled $provider")
+    @RequiresApi(Build.VERSION_CODES.N)
+    private fun onNmeaMessageListener() = object : OnNmeaMessageListener {
+        override fun onNmeaMessage(message: String?, timestamp: Long) {
+            NmeaStateFlow.value = Nmea(timestamp, message ?: "")
         }
     }
 
