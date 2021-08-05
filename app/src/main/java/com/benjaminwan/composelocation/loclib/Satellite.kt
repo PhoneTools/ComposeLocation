@@ -1,6 +1,7 @@
 package com.benjaminwan.composelocation.loclib
 
 import android.location.GnssStatus.*
+import com.benjaminwan.composelocation.utils.format
 
 data class Satellite(
     val svid: Int,//卫星标识号
@@ -30,13 +31,13 @@ data class Satellite(
         }
 
     val cn0DbHzStr: String
-        get() = if (cn0DbHz > 0) cn0DbHz.toString() else ""
+        get() = if (cn0DbHz > 0) cn0DbHz.format("0.0") else ""
 
     val elevationDegreesStr: String
-        get() = if (elevationDegrees > 0) elevationDegrees.toString() else ""
+        get() = if (elevationDegrees > 0) elevationDegrees.format("0.0") else ""
 
     val azimuthDegreesStr: String
-        get() = if (azimuthDegrees > 0) azimuthDegrees.toString() else ""
+        get() = if (azimuthDegrees > 0) azimuthDegrees.format("0.0") else ""
 
 
 }
