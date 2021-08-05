@@ -8,7 +8,8 @@ Kotlin + JetPack Compose
 A Test App for Global Navigation Satellite System (GNSS)
 
 ### ChangeLog
-- v1.0.0: first version
+- v1.0.0: first version, Kotlin v1.5.21, Compose V1.0.1 
+- v1.0.1: fix Chinese translation error
 
 ### Screen Capture
 ![avatar](capture/sample.png)
