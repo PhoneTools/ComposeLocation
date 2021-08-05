@@ -26,7 +26,7 @@
 
     <!-- satellite list-->
     <string name="elevation_degrees">Elevation(°)</string>
-    <string name="azimuth_degrees">azimuth(°)</string>
+    <string name="azimuth_degrees">Azimuth(°)</string>
 
     <!--Dialog-->
     <string name="title_tip">Tip</string>

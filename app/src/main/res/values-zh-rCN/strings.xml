@@ -22,7 +22,7 @@
     <string name="location_bearing_accuracy">方位精度(°)</string>
     <string name="location_satellites_count">卫星数量(使用/可见/总共)</string>
     <string name="elevation_degrees">高度角(度)</string>
-    <string name="azimuth_degrees">高度角(度)</string>
+    <string name="azimuth_degrees">方位角(度)</string>
     <string name="location_altitude">海拔(米)</string>
 
     <string name="title_tip">提示</string>
