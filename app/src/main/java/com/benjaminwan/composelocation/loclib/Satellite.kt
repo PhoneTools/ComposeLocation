@@ -38,20 +38,4 @@ data class Satellite(
 
     val azimuthDegreesStr: String
         get() = if (azimuthDegrees > 0) azimuthDegrees.format("0.0") else ""
-
-
 }
-
-/**
- * 卫星标识号。
- * 这个svid是大多数星座的伪随机数。 这是Glonass的FCN和OSN号码。
- * 区分是通过查看星座字段 getConstellationType(int)预期值在以下范围内：
- * GPS: 1-32
- * SBAS: 120-151, 183-192
- * GLONASS: One of: OSN, or FCN+100
- * 1-24 as the orbital slot number (OSN) (preferred, if known)
- * 93-106 as the frequency channel number (FCN) (-7 to +6) plus 100. i.e. encode FCN of -7 as 93, 0 as 100, and +6 as 106
- * QZSS: 193-200
- * Galileo: 1-36
- * Beidou: 1-37
- * */

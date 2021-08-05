@@ -1,6 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="app_name">Compose定位测试</string>
+
+    <string name="request_permission_error">权限获取错误！</string>
+    <string name="dialog_gps_setting">需要启用定位服务，请按下【去设置】按钮后，在设置页面启用【位置信息】，模式【高精度】，最后按【返回键】回到本页面!</string>
+
+    <string name="location_information">位置信息</string>
+    <string name="location_latitude_degrees">纬度(度)</string>
+    <string name="location_longitude_degrees">经度(度)</string>
+    <string name="location_latitude_degrees_minutes_seconds">纬度(度分秒)</string>
+    <string name="location_longitude_degrees_minutes_seconds">经度(度分秒)</string>
+    <string name="location_latitude_degrees_decimal_minutes">纬度(度分)</string>
+    <string name="location_longitude_degrees_decimal_minutes">经度(度分)</string>
+    <string name="location_time">时间</string>
+    <string name="location_time_to_first_fix">初次定位耗时(秒)</string>
+    <string name="location_accuracy">精度(米)</string>
+    <string name="location_vertical_accuracy">高度精度(米)</string>
+    <string name="location_speed">速度(米/秒)</string>
+    <string name="location_speed_accuracy">速度精度(米/秒)</string>
+    <string name="location_bearing">方位(°)</string>
+    <string name="location_bearing_accuracy">方位精度(°)</string>
+    <string name="location_satellites_count">卫星数量(使用/可见/总共)</string>
+    <string name="elevation_degrees">高度角(度)</string>
+    <string name="azimuth_degrees">高度角(度)</string>
+    <string name="location_altitude">海拔(米)</string>
+
     <string name="title_tip">提示</string>
     <string name="dialog_goto_setting">去设置</string>
-    <string name="dialog_gps_setting">需要启用定位服务，请按下【去设置】按钮后，在设置页面启用【位置信息】，模式【高精度】，最后按【返回键】回到本页面!</string>
+    <string name="location_service_off_msg">位置信息服务已关闭，请到设置选项中启用</string>
 </resources>

@@ -1,7 +1,8 @@
-package com.benjaminwan.composelocation.utils
+package com.benjaminwan.composelocation.loclib
 
 import android.location.Location
 import android.os.Build
+import com.benjaminwan.composelocation.utils.format
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.util.*
@@ -54,6 +55,9 @@ val Location.longitudeDegreesDecimalMinutesHemisphere: String
 
 val Location.timeStr: String
     get() = if (this.time > 0L) Date(this.time).format() else ""
+
+val Location.altitudeStr: String
+    get() = if (this.hasAltitude()) this.altitude.format("0.0") else ""
 
 val Location.accuracyStr: String
     get() = if (this.hasAccuracy()) this.accuracy.format("0.0") else ""

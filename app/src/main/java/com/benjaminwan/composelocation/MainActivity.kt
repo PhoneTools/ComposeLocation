@@ -19,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -28,10 +29,11 @@ import com.afollestad.assent.askForPermissions
 import com.afollestad.assent.isAllGranted
 import com.afollestad.assent.runWithPermissions
 import com.benjaminwan.composelocation.app.App
-import com.benjaminwan.composelocation.loclib.LocationHelper
-import com.benjaminwan.composelocation.loclib.Satellite
+import com.benjaminwan.composelocation.loclib.*
 import com.benjaminwan.composelocation.ui.theme.ComposeLocationTheme
-import com.benjaminwan.composelocation.utils.*
+import com.benjaminwan.composelocation.utils.format
+import com.benjaminwan.composelocation.utils.rememberFlowWithLifecycle
+import com.benjaminwan.composelocation.utils.showToast
 
 class MainActivity : AppCompatActivity() {
     private val locationHelper: LocationHelper = LocationHelper(App.INSTANCE)
@@ -45,7 +47,7 @@ class MainActivity : AppCompatActivity() {
                 askForPermissions(*permissions) { result ->
                     val permissionGranted: Boolean = result.isAllGranted(*permissions)
                     if (!permissionGranted) {
-                        showToast("权限获取错误！")
+                        showToast(R.string.request_permission_error)
                     }
                 }
             }
@@ -72,7 +74,10 @@ class MainActivity : AppCompatActivity() {
                             LocationInfoCard(location, timeToFirstFixStr, satellitesCountStr)
                             SatelliteListCard(satellites)
                         } else {
-                            Text(text = "位置信息服务已关闭，请到设置选项中启用", color = MaterialTheme.colors.error, style = MaterialTheme.typography.h6)
+                            Text(
+                                text = stringResource(id = R.string.location_service_off_msg),
+                                color = MaterialTheme.colors.error, style = MaterialTheme.typography.h6
+                            )
                         }
                     }
                 }
@@ -102,8 +107,8 @@ fun LocationInfoCard(location: Location, timeToFirstFix: String, satellitesCount
         modifier = Modifier
             .fillMaxWidth()
             .wrapContentHeight()
-            .padding(4.dp, 2.dp),
-        shape = RoundedCornerShape(8.dp),
+            .padding(6.dp, 2.dp),
+        shape = RoundedCornerShape(6.dp),
         elevation = 2.dp,
     ) {
         Column {
@@ -113,43 +118,89 @@ fun LocationInfoCard(location: Location, timeToFirstFix: String, satellitesCount
                     .fillMaxWidth(), horizontalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = "位置信息",
-                    textAlign = TextAlign.Center,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colors.onPrimary
+                    text = stringResource(id = R.string.location_information),
+                    textAlign = TextAlign.Center, fontWeight = FontWeight.Bold,
+                    fontSize = 12.sp, color = MaterialTheme.colors.onPrimary
                 )
             }
             Row {
-                LocationText(header = "纬度(度)", content = location.latitudeDegrees, modifier = Modifier.weight(1f))
-                LocationText(header = "经度(度)", content = location.longitudeDegrees, modifier = Modifier.weight(1f))
+                LocationText(
+                    header = stringResource(R.string.location_latitude_degrees),
+                    content = location.latitudeDegrees, modifier = Modifier.weight(1f)
+                )
+                LocationText(
+                    header = stringResource(R.string.location_longitude_degrees),
+                    content = location.longitudeDegrees, modifier = Modifier.weight(1f)
+                )
             }
             Row {
-                LocationText(header = "纬度(度分秒)", content = location.latitudeDegreesMinutesSeconds, modifier = Modifier.weight(1f))
-                LocationText(header = "经度(度分秒)", content = location.longitudeDegreesMinutesSeconds, modifier = Modifier.weight(1f))
+                LocationText(
+                    header = stringResource(R.string.location_latitude_degrees_minutes_seconds),
+                    content = location.latitudeDegreesMinutesSeconds, modifier = Modifier.weight(1f)
+                )
+                LocationText(
+                    header = stringResource(R.string.location_longitude_degrees_minutes_seconds),
+                    content = location.longitudeDegreesMinutesSeconds, modifier = Modifier.weight(1f)
+                )
             }
             Row {
-                LocationText(header = "纬度(度分)", content = location.latitudeDegreesDecimalMinutes, modifier = Modifier.weight(1f))
-                LocationText(header = "经度(度分)", content = location.longitudeDegreesDecimalMinutes, modifier = Modifier.weight(1f))
+                LocationText(
+                    header = stringResource(R.string.location_latitude_degrees_decimal_minutes),
+                    content = location.latitudeDegreesDecimalMinutes, modifier = Modifier.weight(1f)
+                )
+                LocationText(
+                    header = stringResource(R.string.location_longitude_degrees_decimal_minutes),
+                    content = location.longitudeDegreesDecimalMinutes, modifier = Modifier.weight(1f)
+                )
             }
             Row {
-                LocationText(header = "时间", content = location.timeStr, modifier = Modifier.weight(1f))
-                LocationText(header = "初次定位耗时(秒)", content = timeToFirstFix, modifier = Modifier.weight(1f))
+                LocationText(
+                    header = stringResource(R.string.location_time),
+                    content = location.timeStr, modifier = Modifier.weight(1f)
+                )
+                LocationText(
+                    header = stringResource(R.string.location_time_to_first_fix),
+                    content = timeToFirstFix, modifier = Modifier.weight(1f)
+                )
             }
             Row {
-                LocationText(header = "海拔(米)", content = location.accuracyStr, modifier = Modifier.weight(1f))
-                LocationText(header = "海拔精度(米)", content = location.verticalAccuracyMeterStr, modifier = Modifier.weight(1f))
+                LocationText(
+                    header = stringResource(R.string.location_accuracy),
+                    content = location.accuracyStr, modifier = Modifier.weight(1f)
+                )
             }
             Row {
-                LocationText(header = "速度(米/秒)", content = location.speedStr, modifier = Modifier.weight(1f))
-                LocationText(header = "速度精度(米/秒)", content = location.speedAccuracyMetersPerSecondStr, modifier = Modifier.weight(1f))
+                LocationText(
+                    header = stringResource(R.string.location_altitude),
+                    content = location.altitudeStr, modifier = Modifier.weight(1f)
+                )
+                LocationText(
+                    header = stringResource(R.string.location_vertical_accuracy),
+                    content = location.verticalAccuracyMeterStr, modifier = Modifier.weight(1f)
+                )
             }
             Row {
-                LocationText(header = "方位(°)", content = location.bearingStr, modifier = Modifier.weight(1f))
-                LocationText(header = "方位精度(°)", content = location.bearingAccuracyDegreesStr, modifier = Modifier.weight(1f))
+                LocationText(
+                    header = stringResource(R.string.location_speed),
+                    content = location.speedStr, modifier = Modifier.weight(1f)
+                )
+                LocationText(
+                    header = stringResource(R.string.location_speed_accuracy),
+                    content = location.speedAccuracyMetersPerSecondStr, modifier = Modifier.weight(1f)
+                )
             }
             Row {
-                LocationText(header = "卫星数量(使用/可见/总共)", content = satellitesCountStr, modifier = Modifier.weight(1f))
+                LocationText(header = stringResource(R.string.location_bearing), content = location.bearingStr, modifier = Modifier.weight(1f))
+                LocationText(
+                    header = stringResource(R.string.location_bearing_accuracy),
+                    content = location.bearingAccuracyDegreesStr, modifier = Modifier.weight(1f)
+                )
+            }
+            Row {
+                LocationText(
+                    header = stringResource(R.string.location_satellites_count),
+                    content = satellitesCountStr, modifier = Modifier.weight(1f)
+                )
             }
         }
     }
@@ -161,8 +212,8 @@ fun SatelliteListCard(satellites: List<Satellite>) {
         modifier = Modifier
             .fillMaxWidth()
             .wrapContentHeight()
-            .padding(4.dp, 2.dp),
-        shape = RoundedCornerShape(8.dp),
+            .padding(6.dp, 2.dp),
+        shape = RoundedCornerShape(6.dp),
         elevation = 2.dp,
     ) {
         LazyColumn() {
@@ -171,8 +222,8 @@ fun SatelliteListCard(satellites: List<Satellite>) {
                     SatelliteHeaderText(text = "ID", modifier = Modifier.weight(1f))
                     SatelliteHeaderText(text = "TYPE", modifier = Modifier.weight(1f))
                     SatelliteHeaderText(text = "CN0(dB-Hz)", modifier = Modifier.weight(1f))
-                    SatelliteHeaderText(text = "高度角(°)", modifier = Modifier.weight(1f))
-                    SatelliteHeaderText(text = "方位角(°)", modifier = Modifier.weight(1f))
+                    SatelliteHeaderText(text = stringResource(R.string.elevation_degrees), modifier = Modifier.weight(1f))
+                    SatelliteHeaderText(text = stringResource(R.string.azimuth_degrees), modifier = Modifier.weight(1f))
                 }
             }
             items(satellites) { satellite ->

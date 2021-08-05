@@ -1,5 +1,34 @@
 <resources>
     <string name="app_name">ComposeLocation</string>
+
+    <!-- Main-->
+    <string name="request_permission_error">Permission request error!</string>
+    <string name="location_service_off_msg">The location information service has been turned off. Please enable it in settings.</string>
+
+    <!-- Location Information-->
+    <string name="location_information">Location Information</string>
+    <string name="location_latitude_degrees">Latitude(°)</string>
+    <string name="location_longitude_degrees">Longitude(°)</string>
+    <string name="location_latitude_degrees_minutes_seconds">Latitude(°\'\")</string>
+    <string name="location_longitude_degrees_minutes_seconds">Longitude(°\'\")</string>
+    <string name="location_latitude_degrees_decimal_minutes">Latitude(°\')</string>
+    <string name="location_longitude_degrees_decimal_minutes">Longitude(°\')</string>
+    <string name="location_time">Time</string>
+    <string name="location_time_to_first_fix">TTFF(s)</string>
+    <string name="location_accuracy">accuracy(m)</string>
+    <string name="location_altitude">altitude(m)</string>
+    <string name="location_vertical_accuracy">Vertical Accuracy(m)</string>
+    <string name="location_speed">Speed(m/s)</string>
+    <string name="location_speed_accuracy">Speed Accuracy(m/s)</string>
+    <string name="location_bearing">Bearing(°)</string>
+    <string name="location_bearing_accuracy">BearingAccuracy(°)</string>
+    <string name="location_satellites_count">Count(inUsed/inView/Total)</string>
+
+    <!-- satellite list-->
+    <string name="elevation_degrees">Elevation(°)</string>
+    <string name="azimuth_degrees">azimuth(°)</string>
+
+    <!--Dialog-->
     <string name="title_tip">Tip</string>
     <string name="dialog_goto_setting">Go to Settings</string>
     <string name="dialog_gps_setting">Location services need to be enabled, please press [Go to Settings] button and then Enable [Location Service] in the settings page, finally press [Back] button to return to this page!</string>
