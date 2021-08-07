@@ -15,9 +15,7 @@ import androidx.compose.material.Card
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -70,8 +68,17 @@ class MainActivity : AppCompatActivity() {
                         val maxCount = satellites.size
                         val satellitesCountStr = "$usedCount/$inViewCount/$maxCount"
                         val providerEnable by rememberFlowWithLifecycle(locationHelper.providerStateFlow).collectAsState(initial = false)
+                        val nmea by rememberFlowWithLifecycle(locationHelper.nmeaStateFlow).collectAsState(initial = Nmea())
+                        var ggaState by remember { mutableStateOf<GGA?>(null) }
+                        val gga = nmeaToGGA(nmea.nmea)
+                        if (gga != null) ggaState = gga
+                        var rmcState by remember { mutableStateOf<RMC?>(null) }
+                        val rmc = nmeaToRMC(nmea.nmea)
+                        if (rmc != null) rmcState = rmc
                         if (providerEnable) {
                             LocationInfoCard(location, timeToFirstFixStr, satellitesCountStr)
+                            if (ggaState != null) GGAInfoCard(ggaState!!)
+                            if (rmcState != null) RMCInfoCard(rmcState!!)
                             SatelliteListCard(satellites)
                         } else {
                             Text(
@@ -91,6 +98,7 @@ class MainActivity : AppCompatActivity() {
         runWithPermissions(Permission.ACCESS_FINE_LOCATION) {
             locationHelper.start()
             locationHelper.addStatusListener()
+            locationHelper.addNmeaListener()
         }
     }
 
@@ -98,6 +106,7 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
         locationHelper.stop()
         locationHelper.removeStatusListener()
+        locationHelper.removeNmeaListener()
     }
 }
 
@@ -207,6 +216,178 @@ fun LocationInfoCard(location: Location, timeToFirstFix: String, satellitesCount
 }
 
 @Composable
+fun GGAInfoCard(gga: GGA) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .wrapContentHeight()
+            .padding(6.dp, 2.dp),
+        shape = RoundedCornerShape(6.dp),
+        elevation = 2.dp,
+    ) {
+        Column {
+            Row(
+                modifier = Modifier
+                    .background(color = MaterialTheme.colors.primary)
+                    .fillMaxWidth(), horizontalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = "GGA",
+                    textAlign = TextAlign.Center, fontWeight = FontWeight.Bold,
+                    fontSize = 12.sp, color = MaterialTheme.colors.onPrimary
+                )
+            }
+            Row {
+                LocationText(
+                    header = "latitude",
+                    content = gga.latitude, modifier = Modifier.weight(1f)
+                )
+                LocationText(
+                    header = "northSouth",
+                    content = gga.northSouth, modifier = Modifier.weight(1f)
+                )
+            }
+            Row {
+                LocationText(
+                    header = "longitude",
+                    content = gga.longitude, modifier = Modifier.weight(1f)
+                )
+                LocationText(
+                    header = "eastWest",
+                    content = gga.eastWest, modifier = Modifier.weight(1f)
+                )
+            }
+            Row {
+                LocationText(
+                    header = "utc",
+                    content = gga.utc, modifier = Modifier.weight(1f)
+                )
+                LocationText(
+                    header = "quality",
+                    content = gga.quality, modifier = Modifier.weight(1f)
+                )
+            }
+            Row {
+                LocationText(
+                    header = "satelliteCount",
+                    content = gga.satelliteCount, modifier = Modifier.weight(1f)
+                )
+                LocationText(
+                    header = "hdop",
+                    content = gga.hdop, modifier = Modifier.weight(1f)
+                )
+            }
+            Row {
+                LocationText(
+                    header = "altitude",
+                    content = gga.altitude, modifier = Modifier.weight(1f)
+                )
+                LocationText(
+                    header = "altitudeUnit",
+                    content = gga.altitudeUnit, modifier = Modifier.weight(1f)
+                )
+            }
+            Row {
+                LocationText(
+                    header = "geoidalSeparation",
+                    content = gga.geoidalSeparation, modifier = Modifier.weight(1f)
+                )
+                LocationText(
+                    header = "geoidalSeparationUnit",
+                    content = gga.geoidalSeparationUnit, modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun RMCInfoCard(rmc: RMC) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .wrapContentHeight()
+            .padding(6.dp, 2.dp),
+        shape = RoundedCornerShape(6.dp),
+        elevation = 2.dp,
+    ) {
+        Column {
+            Row(
+                modifier = Modifier
+                    .background(color = MaterialTheme.colors.primary)
+                    .fillMaxWidth(), horizontalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = "RMC",
+                    textAlign = TextAlign.Center, fontWeight = FontWeight.Bold,
+                    fontSize = 12.sp, color = MaterialTheme.colors.onPrimary
+                )
+            }
+            Row {
+                LocationText(
+                    header = "utc",
+                    content = rmc.utc, modifier = Modifier.weight(1f)
+                )
+                LocationText(
+                    header = "status",
+                    content = rmc.status, modifier = Modifier.weight(1f)
+                )
+            }
+            Row {
+                LocationText(
+                    header = "latitude",
+                    content = rmc.latitude, modifier = Modifier.weight(1f)
+                )
+                LocationText(
+                    header = "northSouth",
+                    content = rmc.northSouth, modifier = Modifier.weight(1f)
+                )
+            }
+            Row {
+                LocationText(
+                    header = "longitude",
+                    content = rmc.longitude, modifier = Modifier.weight(1f)
+                )
+                LocationText(
+                    header = "eastWest",
+                    content = rmc.eastWest, modifier = Modifier.weight(1f)
+                )
+            }
+            Row {
+                LocationText(
+                    header = "speedOverGround",
+                    content = rmc.speedOverGround, modifier = Modifier.weight(1f)
+                )
+                LocationText(
+                    header = "trackMadeGood",
+                    content = rmc.trackMadeGood, modifier = Modifier.weight(1f)
+                )
+            }
+            Row {
+                LocationText(
+                    header = "date",
+                    content = rmc.date, modifier = Modifier.weight(1f)
+                )
+                LocationText(
+                    header = "magneticVariation",
+                    content = rmc.magneticVariation, modifier = Modifier.weight(1f)
+                )
+            }
+            Row {
+                LocationText(
+                    header = "declination",
+                    content = rmc.declination, modifier = Modifier.weight(1f)
+                )
+                LocationText(
+                    header = "modeIndicator",
+                    content = rmc.modeIndicator, modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
 fun SatelliteListCard(satellites: List<Satellite>) {
     Card(
         modifier = Modifier
@@ -216,23 +397,23 @@ fun SatelliteListCard(satellites: List<Satellite>) {
         shape = RoundedCornerShape(6.dp),
         elevation = 2.dp,
     ) {
-        LazyColumn() {
-            item {
-                Row(modifier = Modifier.background(color = MaterialTheme.colors.primary)) {
-                    SatelliteHeaderText(text = "ID", modifier = Modifier.weight(1f))
-                    SatelliteHeaderText(text = "TYPE", modifier = Modifier.weight(1f))
-                    SatelliteHeaderText(text = "CN0(dB-Hz)", modifier = Modifier.weight(1f))
-                    SatelliteHeaderText(text = stringResource(R.string.elevation_degrees), modifier = Modifier.weight(1f))
-                    SatelliteHeaderText(text = stringResource(R.string.azimuth_degrees), modifier = Modifier.weight(1f))
-                }
+        Column {
+            Row(modifier = Modifier.background(color = MaterialTheme.colors.primary)) {
+                SatelliteHeaderText(text = "ID", modifier = Modifier.weight(1f))
+                SatelliteHeaderText(text = "TYPE", modifier = Modifier.weight(1f))
+                SatelliteHeaderText(text = "CN0(dBHz)", modifier = Modifier.weight(1f))
+                SatelliteHeaderText(text = stringResource(R.string.elevation_degrees), modifier = Modifier.weight(1f))
+                SatelliteHeaderText(text = stringResource(R.string.azimuth_degrees), modifier = Modifier.weight(1f))
             }
-            items(satellites) { satellite ->
-                Row {
-                    SatelliteText(text = "${satellite.svid}", modifier = Modifier.weight(1f))
-                    SatelliteText(text = satellite.constellation, modifier = Modifier.weight(1f))
-                    SatelliteText(text = satellite.cn0DbHzStr, modifier = Modifier.weight(1f))
-                    SatelliteText(text = satellite.elevationDegreesStr, modifier = Modifier.weight(1f))
-                    SatelliteText(text = satellite.azimuthDegreesStr, modifier = Modifier.weight(1f))
+            LazyColumn() {
+                items(satellites) { satellite ->
+                    Row {
+                        SatelliteText(text = "${satellite.svid}", modifier = Modifier.weight(1f))
+                        SatelliteText(text = satellite.constellation, modifier = Modifier.weight(1f))
+                        SatelliteText(text = satellite.cn0DbHzStr, modifier = Modifier.weight(1f))
+                        SatelliteText(text = satellite.elevationDegreesStr, modifier = Modifier.weight(1f))
+                        SatelliteText(text = satellite.azimuthDegreesStr, modifier = Modifier.weight(1f))
+                    }
                 }
             }
         }
