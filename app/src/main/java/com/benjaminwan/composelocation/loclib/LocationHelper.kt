@@ -8,6 +8,8 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import androidx.annotation.RequiresApi
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateOf
 import androidx.core.location.GnssStatusCompat.*
 import kotlinx.coroutines.flow.MutableStateFlow
 
@@ -34,7 +36,8 @@ class LocationHelper(context: Context) {
     val nmeaStateFlow = MutableStateFlow<Nmea>(Nmea())//GPS原始数据
     val locationStateFlow = MutableStateFlow<Location>(Location(LocationManager.GPS_PROVIDER))//位置
     val timeToFirstFixStateFlow = MutableStateFlow(Float.NaN)//初次定位时间 TimeToFirstFix
-    val providerStateFlow = MutableStateFlow(false) //位置服务开关状态
+    val gpsProviderStateFlow = MutableStateFlow(false) //位置服务开关状态
+    val isStart: MutableState<Boolean> = mutableStateOf(false) //是否已经启动location Listener
 
     @SuppressLint("MissingPermission")
     @JvmOverloads
@@ -43,7 +46,8 @@ class LocationHelper(context: Context) {
             locationListener = it
             locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, minTimeMs, minDistanceM, it, Looper.getMainLooper())
         }
-        providerStateFlow.value = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
+        gpsProviderStateFlow.value = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
+        isStart.value = true
     }
 
     @SuppressLint("MissingPermission")
@@ -51,6 +55,7 @@ class LocationHelper(context: Context) {
         locationListener?.let {
             locationManager.removeUpdates(it)
         }
+        isStart.value = false
     }
 
     @SuppressLint("MissingPermission")
@@ -118,12 +123,12 @@ class LocationHelper(context: Context) {
 
         override fun onProviderEnabled(provider: String) {
             //Logger.i("onProviderEnabled $provider")
-            providerStateFlow.value = true
+            gpsProviderStateFlow.value = true
         }
 
         override fun onProviderDisabled(provider: String) {
             //Logger.i("onProviderDisabled $provider")
-            providerStateFlow.value = false
+            gpsProviderStateFlow.value = false
         }
     }
 

@@ -35,7 +35,7 @@ import com.benjaminwan.composelocation.utils.showToast
 
 class MainActivity : AppCompatActivity() {
     private val locationHelper: LocationHelper = LocationHelper(App.INSTANCE)
-    private fun getPermissions() {
+    private fun requestPermissions() {
         val permissions = arrayOf(
             Permission.ACCESS_FINE_LOCATION,
             Permission.ACCESS_COARSE_LOCATION
@@ -67,7 +67,7 @@ class MainActivity : AppCompatActivity() {
                         val inViewCount = satellites.count { it.cn0DbHz > 0 }
                         val maxCount = satellites.size
                         val satellitesCountStr = "$usedCount/$inViewCount/$maxCount"
-                        val providerEnable by rememberFlowWithLifecycle(locationHelper.providerStateFlow).collectAsState(initial = false)
+                        val gpsEnable by rememberFlowWithLifecycle(locationHelper.gpsProviderStateFlow).collectAsState(initial = false)
                         val nmea by rememberFlowWithLifecycle(locationHelper.nmeaStateFlow).collectAsState(initial = Nmea())
                         var ggaState by remember { mutableStateOf<GGA?>(null) }
                         val gga = nmeaToGGA(nmea.nmea)
@@ -75,7 +75,7 @@ class MainActivity : AppCompatActivity() {
                         var rmcState by remember { mutableStateOf<RMC?>(null) }
                         val rmc = nmeaToRMC(nmea.nmea)
                         if (rmc != null) rmcState = rmc
-                        if (providerEnable) {
+                        if (gpsEnable) {
                             LocationInfoCard(location, timeToFirstFixStr, satellitesCountStr)
                             if (ggaState != null) GGAInfoCard(ggaState!!)
                             if (rmcState != null) RMCInfoCard(rmcState!!)
@@ -94,16 +94,26 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        getPermissions()
+        requestPermissions()
         runWithPermissions(Permission.ACCESS_FINE_LOCATION) {
+            startLoc()
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        stopLoc()
+    }
+
+    private fun startLoc() {
+        if (!locationHelper.isStart.value) {
             locationHelper.start()
             locationHelper.addStatusListener()
             locationHelper.addNmeaListener()
         }
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
+    private fun stopLoc() {
         locationHelper.stop()
         locationHelper.removeStatusListener()
         locationHelper.removeNmeaListener()
