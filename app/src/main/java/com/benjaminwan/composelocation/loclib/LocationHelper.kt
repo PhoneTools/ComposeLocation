@@ -5,6 +5,8 @@ import android.content.Context
 import android.location.*
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import androidx.annotation.RequiresApi
 import androidx.core.location.GnssStatusCompat.*
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,7 +31,7 @@ class LocationHelper(context: Context) {
     private var onNmeaMessageListener: OnNmeaMessageListener? = null
 
     val satelliteStateFlow = MutableStateFlow<List<Satellite>>(emptyList())//卫星列表
-    val NmeaStateFlow = MutableStateFlow<Nmea>(Nmea())//GPS原始数据
+    val nmeaStateFlow = MutableStateFlow<Nmea>(Nmea())//GPS原始数据
     val locationStateFlow = MutableStateFlow<Location>(Location(LocationManager.GPS_PROVIDER))//位置
     val timeToFirstFixStateFlow = MutableStateFlow(Float.NaN)//初次定位时间 TimeToFirstFix
     val providerStateFlow = MutableStateFlow(false) //位置服务开关状态
@@ -39,7 +41,7 @@ class LocationHelper(context: Context) {
     fun start(minTimeMs: Long = MIN_TIME_MS, minDistanceM: Float = MIN_DISTANCE_M) {
         locationListener().let {
             locationListener = it
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, minTimeMs, minDistanceM, it)
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, minTimeMs, minDistanceM, it, Looper.getMainLooper())
         }
         providerStateFlow.value = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
     }
@@ -56,7 +58,7 @@ class LocationHelper(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             gnssStatusListener().let {
                 gnssStatusListener = it
-                locationManager.registerGnssStatusCallback(it)
+                locationManager.registerGnssStatusCallback(it, Handler(Looper.getMainLooper()))
             }
         } else {
             legacyStatusListener().let {
@@ -83,7 +85,7 @@ class LocationHelper(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             onNmeaMessageListener().let {
                 onNmeaMessageListener = it
-                locationManager.addNmeaListener(it)
+                locationManager.addNmeaListener(it, Handler(Looper.getMainLooper()))
             }
         } else {
             legacyNmeaListener().let {
@@ -236,14 +238,14 @@ class LocationHelper(context: Context) {
 
     private fun legacyNmeaListener() = object : GpsStatus.NmeaListener {
         override fun onNmeaReceived(timestamp: Long, nmea: String?) {
-            NmeaStateFlow.value = Nmea(timestamp, nmea ?: "")
+            nmeaStateFlow.value = Nmea(timestamp, nmea ?: "")
         }
     }
 
     @RequiresApi(Build.VERSION_CODES.N)
     private fun onNmeaMessageListener() = object : OnNmeaMessageListener {
         override fun onNmeaMessage(message: String?, timestamp: Long) {
-            NmeaStateFlow.value = Nmea(timestamp, message ?: "")
+            nmeaStateFlow.value = Nmea(timestamp, message ?: "")
         }
     }
 
