@@ -14,6 +14,7 @@ A Test App for Global Navigation Satellite System (GNSS)
 - v1.0.0: first version, Kotlin v1.5.21, Compose V1.0.1
 - v1.0.1: fix Chinese translation error
 - v1.1.0: add nmea GGA/RMC Information
+- v1.1.1: 检测是否已经启动location Listener，避免重复添加回调
 
 ### Screen Capture
 
