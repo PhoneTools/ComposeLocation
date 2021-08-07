@@ -39,6 +39,18 @@ val Location.latitudeDegreesDecimalMinutes: String
 val Location.longitudeDegreesDecimalMinutes: String
     get() = getDDM(this.longitude).toString()
 
+val Location.latitudeDdmmPointMmmmmmm: Double
+    get() {
+        val ddm = getDDM(this.latitude)
+        return ddm.degrees * 100 + ddm.minutes
+    }
+
+val Location.longitudeDddmmPointMmmmmm: Double
+    get() {
+        val ddm = getDDM(this.longitude)
+        return ddm.degrees * 100 + ddm.minutes
+    }
+
 val Location.latitudeDegreesDecimalMinutesHemisphere: String
     get() {
         val ddm = getDDM(this.latitude)
@@ -98,16 +110,16 @@ private fun getDMS(coordinate: Double): DMS {
 
 private data class DDM(
     val degrees: Int,
-    val minutes: Float,
+    val minutes: Double,
 ) {
     override fun toString(): String {
-        return "${degrees}\u00B0 ${minutes.format("0.000")}"
+        return "${degrees}\u00B0 ${minutes.format("0.000000")}"
     }
 }
 
 private fun getDDM(coordinate: Double): DDM {
     val loc = BigDecimal(coordinate)
     val degrees = loc.setScale(0, RoundingMode.DOWN)
-    val minutes = loc.subtract(degrees).multiply(BigDecimal(60)).abs().setScale(3, RoundingMode.HALF_UP)
-    return DDM(degrees.toInt(), minutes.toFloat())
+    val minutes = loc.subtract(degrees).multiply(BigDecimal(60)).abs().setScale(6, RoundingMode.HALF_UP)
+    return DDM(degrees.toInt(), minutes.toDouble())
 }
