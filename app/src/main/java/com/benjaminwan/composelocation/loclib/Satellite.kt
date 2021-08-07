@@ -27,7 +27,7 @@ data class Satellite(
             CONSTELLATION_BEIDOU -> "BEIDOU" //北斗
             CONSTELLATION_GALILEO -> "GALILEO" //伽利略
             CONSTELLATION_IRNSS -> "IRNSS"
-            else -> Integer.toString(constellationType)
+            else -> constellationType.toString()
         }
 
     val cn0DbHzStr: String
