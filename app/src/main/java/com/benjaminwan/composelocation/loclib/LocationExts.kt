@@ -68,6 +68,13 @@ val Location.longitudeDegreesDecimalMinutesHemisphere: String
 val Location.timeStr: String
     get() = if (this.time > 0L) Date(this.time).format() else ""
 
+val Location.calendar: Calendar
+    get() = if (this.time > 0L) {
+        Calendar.getInstance().also {
+            it.timeInMillis = this.time
+        }
+    } else Calendar.getInstance().also { it.timeInMillis = 0L }
+
 val Location.altitudeStr: String
     get() = if (this.hasAltitude()) this.altitude.format("0.0") else ""
 
