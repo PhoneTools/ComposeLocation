@@ -60,14 +60,14 @@ class MainActivity : AppCompatActivity() {
                 Surface(color = MaterialTheme.colors.background) {
                     Column {
                         val location by rememberFlowWithLifecycle(locationHelper.locationStateFlow).collectAsState(initial = Location(GPS_PROVIDER))
-                        val timeToFirstFix by rememberFlowWithLifecycle(locationHelper.timeToFirstFixStateFlow).collectAsState(initial = Float.NaN)
+                        val timeToFirstFix by locationHelper.timeToFirstFixState
                         val timeToFirstFixStr = if (timeToFirstFix.isNaN()) "" else timeToFirstFix.format("0.0")
                         val satellites by rememberFlowWithLifecycle(locationHelper.satelliteStateFlow).collectAsState(initial = emptyList())
                         val usedCount = satellites.count { it.usedInFix }
                         val inViewCount = satellites.count { it.cn0DbHz > 0 }
                         val maxCount = satellites.size
                         val satellitesCountStr = "$usedCount/$inViewCount/$maxCount"
-                        val gpsEnable by rememberFlowWithLifecycle(locationHelper.gpsProviderStateFlow).collectAsState(initial = false)
+                        val gpsEnable by locationHelper.gpsProviderState
                         val nmea by rememberFlowWithLifecycle(locationHelper.nmeaStateFlow).collectAsState(initial = Nmea())
                         var ggaState by remember { mutableStateOf<GGA?>(null) }
                         val gga = nmeaToGGA(nmea.nmea)
