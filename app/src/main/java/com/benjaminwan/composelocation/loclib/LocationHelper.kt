@@ -3,10 +3,7 @@ package com.benjaminwan.composelocation.loclib
 import android.annotation.SuppressLint
 import android.content.Context
 import android.location.*
-import android.os.Build
-import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
+import android.os.*
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
@@ -39,12 +36,18 @@ class LocationHelper(context: Context) {
     val gpsProviderStateFlow = MutableStateFlow(false) //位置服务开关状态
     val isStart: MutableState<Boolean> = mutableStateOf(false) //是否已经启动location Listener
 
+    private val locHandlerThread = HandlerThread("LocationHandlerThread")
+
+    init {
+        locHandlerThread.start()
+    }
+
     @SuppressLint("MissingPermission")
     @JvmOverloads
     fun start(minTimeMs: Long = MIN_TIME_MS, minDistanceM: Float = MIN_DISTANCE_M) {
         locationListener().let {
             locationListener = it
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, minTimeMs, minDistanceM, it, Looper.getMainLooper())
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, minTimeMs, minDistanceM, it, locHandlerThread.looper)
         }
         gpsProviderStateFlow.value = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
         isStart.value = true
@@ -63,7 +66,7 @@ class LocationHelper(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             gnssStatusListener().let {
                 gnssStatusListener = it
-                locationManager.registerGnssStatusCallback(it, Handler(Looper.getMainLooper()))
+                locationManager.registerGnssStatusCallback(it, Handler(locHandlerThread.looper))
             }
         } else {
             legacyStatusListener().let {
