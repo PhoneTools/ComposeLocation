@@ -11,10 +11,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.Card
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Surface
-import androidx.compose.material.Text
+import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -75,11 +72,31 @@ class MainActivity : AppCompatActivity() {
                         var rmcState by remember { mutableStateOf<RMC?>(null) }
                         val rmc = nmeaToRMC(nmea.nmea)
                         if (rmc != null) rmcState = rmc
+                        val tabs = listOf(stringResource(R.string.location_tab_1), stringResource(R.string.location_tab_2))
+                        var selectedTab by remember { mutableStateOf(0) }
                         if (gpsEnable) {
-                            LocationInfoCard(location, timeToFirstFixStr, satellitesCountStr)
-                            if (ggaState != null) GGAInfoCard(ggaState!!)
-                            if (rmcState != null) RMCInfoCard(rmcState!!)
-                            SatelliteListCard(satellites)
+                            TabRow(selectedTabIndex = selectedTab) {
+                                tabs.forEachIndexed { index, s ->
+                                    Tab(
+                                        selected = index == selectedTab,
+                                        onClick = { selectedTab = index },
+                                    ) {
+                                        Text(text = s, modifier = Modifier.padding(8.dp))
+                                    }
+                                }
+                            }
+                            when (selectedTab) {
+                                0 -> {
+                                    LocationInfoCard(location, timeToFirstFixStr, satellitesCountStr)
+                                    SatelliteListCard(satellites)
+                                }
+                                1 -> {
+                                    if (ggaState != null) GGAInfoCard(ggaState!!)
+                                    if (rmcState != null) RMCInfoCard(rmcState!!)
+                                }
+                                else -> {
+                                }
+                            }
                         } else {
                             Text(
                                 text = stringResource(id = R.string.location_service_off_msg),

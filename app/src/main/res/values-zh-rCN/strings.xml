@@ -28,4 +28,6 @@
     <string name="title_tip">提示</string>
     <string name="dialog_goto_setting">去设置</string>
     <string name="location_service_off_msg">位置信息服务已关闭，请到设置选项中启用</string>
+    <string name="location_tab_1">定位信息</string>
+    <string name="location_tab_2">原始信息</string>
 </resources>

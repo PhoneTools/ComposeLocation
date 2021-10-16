@@ -23,6 +23,8 @@
     <string name="location_bearing">Bearing(°)</string>
     <string name="location_bearing_accuracy">BearingAccuracy(°)</string>
     <string name="location_satellites_count">Count(inUsed/inView/Total)</string>
+    <string name="location_tab_1">Detail</string>
+    <string name="location_tab_2">Raw Info</string>
 
     <!-- satellite list-->
     <string name="elevation_degrees">Elevation(°)</string>
