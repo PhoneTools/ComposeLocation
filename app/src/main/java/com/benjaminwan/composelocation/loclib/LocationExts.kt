@@ -8,10 +8,10 @@ import java.math.RoundingMode
 import java.util.*
 
 val Location.latitudeDegrees: String
-    get() = this.latitude.format("0.0000000")
+    get() = this.latitude.format("0.000000")
 
 val Location.longitudeDegrees: String
-    get() = this.longitude.format("0.0000000")
+    get() = this.longitude.format("0.000000")
 
 val Location.latitudeDegreesMinutesSeconds: String
     get() = getDMS(this.latitude).toString()

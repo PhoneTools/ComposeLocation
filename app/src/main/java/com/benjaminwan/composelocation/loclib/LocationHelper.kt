@@ -5,11 +5,10 @@ import android.content.Context
 import android.location.*
 import android.os.*
 import androidx.annotation.RequiresApi
-import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.mutableStateOf
 import androidx.core.location.GnssStatusCompat.*
-import kotlinx.coroutines.flow.MutableStateFlow
-
+import com.orhanobut.logger.Logger
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 
 class LocationHelper(context: Context) {
     companion object {
@@ -29,14 +28,37 @@ class LocationHelper(context: Context) {
     private var gnssStatusListener: GnssStatus.Callback? = null
     private var onNmeaMessageListener: OnNmeaMessageListener? = null
 
-    val locationStateFlow = MutableStateFlow<Location>(Location(LocationManager.GPS_PROVIDER))//位置
-    val satelliteStateFlow = MutableStateFlow<List<Satellite>>(emptyList())//卫星列表
-    val nmeaStateFlow = MutableStateFlow<Nmea>(Nmea())//GPS原始数据
-    val timeToFirstFixState = mutableStateOf(Float.NaN)//初次定位时间 TimeToFirstFix
-    val gpsProviderState = mutableStateOf(false) //位置服务开关状态
-    val isStart: MutableState<Boolean> = mutableStateOf(false) //是否已经启动location Listener
+    val firstFixTime: Int
+        get() = timeToFirstFix.get()
+    private val timeToFirstFix: AtomicInteger = AtomicInteger(0)//初次定位耗时 毫秒
+
+    val gpsProviderEnabled: Boolean
+        get() = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
+
+    val started: Boolean
+        get() = isStart.get()
+    private val isStart: AtomicBoolean = AtomicBoolean(false) //是否已经启动location Listener
 
     private val locHandlerThread = HandlerThread("LocationHandlerThread")
+
+    private val onLocationListeners: MutableList<IOnLocationListener> = mutableListOf()
+
+    fun addOnLocationListener(listener: IOnLocationListener?): LocationHelper {
+        if (listener == null) return this
+        if (!onLocationListeners.contains(listener)) onLocationListeners.add(listener)
+        return this
+    }
+
+    fun removeOnLocationListener(listener: IOnLocationListener?): LocationHelper {
+        if (listener == null || onLocationListeners.isEmpty()) return this
+        val index = onLocationListeners.indexOf(listener)
+        if (index >= 0) onLocationListeners.removeAt(index)
+        return this
+    }
+
+    fun clearOnLocationListener() {
+        onLocationListeners.clear()
+    }
 
     init {
         locHandlerThread.start()
@@ -45,24 +67,25 @@ class LocationHelper(context: Context) {
     @SuppressLint("MissingPermission")
     @JvmOverloads
     fun start(minTimeMs: Long = MIN_TIME_MS, minDistanceM: Float = MIN_DISTANCE_M) {
+        Logger.e("start location")
         locationListener().let {
             locationListener = it
             locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, minTimeMs, minDistanceM, it, locHandlerThread.looper)
         }
-        gpsProviderState.value = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
-        isStart.value = true
+        isStart.set(true)
     }
 
     @SuppressLint("MissingPermission")
     fun stop() {
+        Logger.e("stop location")
         locationListener?.let {
             locationManager.removeUpdates(it)
         }
-        isStart.value = false
+        isStart.set(false)
     }
 
     @SuppressLint("MissingPermission")
-    fun addStatusListener() {
+    fun enableStatusListener() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             gnssStatusListener().let {
                 gnssStatusListener = it
@@ -76,7 +99,7 @@ class LocationHelper(context: Context) {
         }
     }
 
-    fun removeStatusListener() {
+    fun disableStatusListener() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             gnssStatusListener?.let {
                 locationManager.unregisterGnssStatusCallback(it)
@@ -89,7 +112,7 @@ class LocationHelper(context: Context) {
     }
 
     @SuppressLint("MissingPermission")
-    fun addNmeaListener() {
+    fun enableNmeaListener() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             onNmeaMessageListener().let {
                 onNmeaMessageListener = it
@@ -103,7 +126,7 @@ class LocationHelper(context: Context) {
         }
     }
 
-    fun removeNmeaListener() {
+    fun disableNmeaListener() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             onNmeaMessageListener?.let {
                 locationManager.removeNmeaListener(it)
@@ -117,7 +140,7 @@ class LocationHelper(context: Context) {
 
     private fun locationListener() = object : LocationListener {
         override fun onLocationChanged(location: Location) {
-            locationStateFlow.value = location
+            onLocationListeners.forEach { it.onLocationChanged(location) }
         }
 
         override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {
@@ -126,12 +149,12 @@ class LocationHelper(context: Context) {
 
         override fun onProviderEnabled(provider: String) {
             //Logger.i("onProviderEnabled $provider")
-            gpsProviderState.value = true
+            onLocationListeners.forEach { it.onGpsProviderChanged(true) }
         }
 
         override fun onProviderDisabled(provider: String) {
             //Logger.i("onProviderDisabled $provider")
-            gpsProviderState.value = false
+            onLocationListeners.forEach { it.onGpsProviderChanged(false) }
         }
     }
 
@@ -139,20 +162,21 @@ class LocationHelper(context: Context) {
     private fun gnssStatusListener() = object : GnssStatus.Callback() {
         override fun onStarted() {
             //Logger.i("onStarted")
-            timeToFirstFixState.value = Float.NaN
+            timeToFirstFix.set(0)
         }
 
         override fun onStopped() {
             //Logger.i("onStopped")
-            timeToFirstFixState.value = Float.NaN
+            timeToFirstFix.set(0)
         }
 
         override fun onFirstFix(ttffMillis: Int) {
-            timeToFirstFixState.value = ttffMillis.toFloat() / 1000
+            timeToFirstFix.set(ttffMillis)
+            onLocationListeners.forEach { it.onFirstFix(ttffMillis) }
         }
 
         override fun onSatelliteStatusChanged(status: GnssStatus) {
-            satelliteStateFlow.value = (0 until status.satelliteCount).map {
+            val satellites = (0 until status.satelliteCount).map {
                 val svid = status.getSvid(it)
                 val constellationType = status.getConstellationType(it)
                 val cn0DbHz = status.getCn0DbHz(it)
@@ -190,6 +214,8 @@ class LocationHelper(context: Context) {
                     hasBasebandCn0DbHz, basebandCn0DbHz
                 )
             }
+            Logger.e("abc satellites=$satellites")
+            onLocationListeners.onEach { it.onSatellitesChanged(satellites) }
         }
     }
 
@@ -201,16 +227,18 @@ class LocationHelper(context: Context) {
             when (event) {
                 GpsStatus.GPS_EVENT_STARTED -> {
                     //Logger.i("GPS_EVENT_STARTED")
-                    timeToFirstFixState.value = Float.NaN
+                    timeToFirstFix.set(0)
                 }
                 GpsStatus.GPS_EVENT_STOPPED -> {
                     //Logger.i("GPS_EVENT_STOPPED")
-                    timeToFirstFixState.value = Float.NaN
+                    timeToFirstFix.set(0)
                 }
                 GpsStatus.GPS_EVENT_FIRST_FIX -> {
                     val status = locationManager.getGpsStatus(null)
                     status?.let {
-                        timeToFirstFixState.value = it.timeToFirstFix.toFloat() / 1000
+                        val time = it.timeToFirstFix
+                        timeToFirstFix.set(time)
+                        onLocationListeners.forEach { it.onFirstFix(time) }
                     }
                 }
                 GpsStatus.GPS_EVENT_SATELLITE_STATUS -> {
@@ -236,8 +264,8 @@ class LocationHelper(context: Context) {
                                 azimuthDegrees, hasEphemerisData,
                                 hasAlmanacData, usedInFix,
                             )
-                        }
-                        satelliteStateFlow.value = satellites ?: emptyList()
+                        } ?: emptyList()
+                        onLocationListeners.forEach { it.onSatellitesChanged(satellites) }
                     }
                 }
             }
@@ -246,14 +274,16 @@ class LocationHelper(context: Context) {
 
     private fun legacyNmeaListener() = object : GpsStatus.NmeaListener {
         override fun onNmeaReceived(timestamp: Long, nmea: String?) {
-            nmeaStateFlow.value = Nmea(timestamp, nmea ?: "")
+            val tmpNmea = Nmea(timestamp, nmea ?: "")
+            onLocationListeners.forEach { it.onNmeaChanged(tmpNmea) }
         }
     }
 
     @RequiresApi(Build.VERSION_CODES.N)
     private fun onNmeaMessageListener() = object : OnNmeaMessageListener {
         override fun onNmeaMessage(message: String?, timestamp: Long) {
-            nmeaStateFlow.value = Nmea(timestamp, message ?: "")
+            val tmpNmea = Nmea(timestamp, message ?: "")
+            onLocationListeners.forEach { it.onNmeaChanged(tmpNmea) }
         }
     }
 

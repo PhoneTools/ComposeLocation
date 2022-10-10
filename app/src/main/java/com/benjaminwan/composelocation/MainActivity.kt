@@ -23,15 +23,14 @@ import com.afollestad.assent.Permission
 import com.afollestad.assent.askForPermissions
 import com.afollestad.assent.isAllGranted
 import com.afollestad.assent.runWithPermissions
-import com.benjaminwan.composelocation.app.App
 import com.benjaminwan.composelocation.loclib.*
 import com.benjaminwan.composelocation.ui.theme.ComposeLocationTheme
 import com.benjaminwan.composelocation.utils.format
-import com.benjaminwan.composelocation.utils.rememberFlowWithLifecycle
 import com.benjaminwan.composelocation.utils.showToast
+import com.orhanobut.logger.Logger
 
 class MainActivity : AppCompatActivity() {
-    private val locationHelper: LocationHelper = LocationHelper(App.INSTANCE)
+
     private fun requestPermissions() {
         val permissions = arrayOf(
             Permission.ACCESS_FINE_LOCATION,
@@ -49,32 +48,83 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private val locationHelper: LocationHelper by lazy { LocationHelper(applicationContext) }
+
+    private val firstFixTimeState = mutableStateOf("")
+    private val locationState = mutableStateOf<Location>(Location(GPS_PROVIDER))
+    private val satelliteState = mutableStateOf(emptyList<Satellite>())
+    private val nmeaState = mutableStateOf(Nmea())
+    private val gpsEnabledState = mutableStateOf(false)
+
+    private val locListener = object : IOnLocationListener {
+        override fun onLocationChanged(location: Location) {
+            locationState.value = location
+        }
+
+        override fun onSatellitesChanged(satellites: List<Satellite>) {
+            satelliteState.value = satellites
+            Logger.e("satellites=$satellites")
+        }
+
+        override fun onNmeaChanged(nmea: Nmea) {
+            nmeaState.value = nmea
+        }
+
+        override fun onFirstFix(firstFixTimeMs: Int) {
+            val time = firstFixTimeMs.toFloat() / 1000
+            firstFixTimeState.value = if (time.isNaN()) "" else time.format("0.0")
+        }
+
+        override fun onGpsProviderChanged(isEnable: Boolean) {
+            gpsEnabledState.value = isEnable
+            if (!isEnable) {
+                firstFixTimeState.value = ""
+                locationState.value = Location(GPS_PROVIDER)
+                satelliteState.value = emptyList()
+                nmeaState.value = Nmea()
+            }
+        }
+    }
+
+    private fun startLoc() {
+        if (!locationHelper.started) {
+            locationHelper.start()
+            locationHelper.addOnLocationListener(locListener)
+            locationHelper.enableStatusListener()
+            locationHelper.enableNmeaListener()
+        }
+    }
+
+    private fun stopLoc() {
+        if (locationHelper.started) {
+            locationHelper.stop()
+            locationHelper.removeOnLocationListener(locListener)
+            locationHelper.disableStatusListener()
+            locationHelper.disableNmeaListener()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         makeSureLocEnable(this)
+        gpsEnabledState.value = locationHelper.gpsProviderEnabled
         setContent {
             ComposeLocationTheme {
                 Surface(color = MaterialTheme.colors.background) {
                     Column {
-                        val location by rememberFlowWithLifecycle(locationHelper.locationStateFlow).collectAsState(initial = Location(GPS_PROVIDER))
-                        val timeToFirstFix by locationHelper.timeToFirstFixState
-                        val timeToFirstFixStr = if (timeToFirstFix.isNaN()) "" else timeToFirstFix.format("0.0")
-                        val satellites by rememberFlowWithLifecycle(locationHelper.satelliteStateFlow).collectAsState(initial = emptyList())
-                        val usedCount = satellites.count { it.usedInFix }
-                        val inViewCount = satellites.count { it.cn0DbHz > 0 }
-                        val maxCount = satellites.size
+                        val usedCount = satelliteState.value.count { it.usedInFix }
+                        val inViewCount = satelliteState.value.count { it.cn0DbHz > 0 }
+                        val maxCount = satelliteState.value.size
                         val satellitesCountStr = "$usedCount/$inViewCount/$maxCount"
-                        val gpsEnable by locationHelper.gpsProviderState
-                        val nmea by rememberFlowWithLifecycle(locationHelper.nmeaStateFlow).collectAsState(initial = Nmea())
                         var ggaState by remember { mutableStateOf<GGA?>(null) }
-                        val gga = nmeaToGGA(nmea.nmea)
+                        val gga = nmeaToGGA(nmeaState.value.nmea)
                         if (gga != null) ggaState = gga
                         var rmcState by remember { mutableStateOf<RMC?>(null) }
-                        val rmc = nmeaToRMC(nmea.nmea)
+                        val rmc = nmeaToRMC(nmeaState.value.nmea)
                         if (rmc != null) rmcState = rmc
                         val tabs = listOf(stringResource(R.string.location_tab_1), stringResource(R.string.location_tab_2))
                         var selectedTab by remember { mutableStateOf(0) }
-                        if (gpsEnable) {
+                        if (gpsEnabledState.value) {
                             TabRow(selectedTabIndex = selectedTab) {
                                 tabs.forEachIndexed { index, s ->
                                     Tab(
@@ -87,8 +137,8 @@ class MainActivity : AppCompatActivity() {
                             }
                             when (selectedTab) {
                                 0 -> {
-                                    LocationInfoCard(location, timeToFirstFixStr, satellitesCountStr)
-                                    SatelliteListCard(satellites)
+                                    LocationInfoCard(locationState.value, firstFixTimeState.value, satellitesCountStr)
+                                    SatelliteListCard(satelliteState.value)
                                 }
                                 1 -> {
                                     if (ggaState != null) GGAInfoCard(ggaState!!)
@@ -122,19 +172,6 @@ class MainActivity : AppCompatActivity() {
         stopLoc()
     }
 
-    private fun startLoc() {
-        if (!locationHelper.isStart.value) {
-            locationHelper.start()
-            locationHelper.addStatusListener()
-            locationHelper.addNmeaListener()
-        }
-    }
-
-    private fun stopLoc() {
-        locationHelper.stop()
-        locationHelper.removeStatusListener()
-        locationHelper.removeNmeaListener()
-    }
 }
 
 @Composable
