@@ -6,7 +6,6 @@ import android.location.*
 import android.os.*
 import androidx.annotation.RequiresApi
 import androidx.core.location.GnssStatusCompat.*
-import com.orhanobut.logger.Logger
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -67,7 +66,6 @@ class LocationHelper(context: Context) {
     @SuppressLint("MissingPermission")
     @JvmOverloads
     fun start(minTimeMs: Long = MIN_TIME_MS, minDistanceM: Float = MIN_DISTANCE_M) {
-        Logger.e("start location")
         locationListener().let {
             locationListener = it
             locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, minTimeMs, minDistanceM, it, locHandlerThread.looper)
@@ -77,7 +75,6 @@ class LocationHelper(context: Context) {
 
     @SuppressLint("MissingPermission")
     fun stop() {
-        Logger.e("stop location")
         locationListener?.let {
             locationManager.removeUpdates(it)
         }
@@ -214,7 +211,6 @@ class LocationHelper(context: Context) {
                     hasBasebandCn0DbHz, basebandCn0DbHz
                 )
             }
-            Logger.e("abc satellites=$satellites")
             onLocationListeners.onEach { it.onSatellitesChanged(satellites) }
         }
     }
